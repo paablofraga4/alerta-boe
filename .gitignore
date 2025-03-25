@@ -1,0 +1,24 @@
+# Entornos virtuales
+venv/
+.env
+.env.*
+
+# Bytecode de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos temporales o del sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Streamlit
+.streamlit/config.toml
+
+# Archivos de ejecución
+*.sqlite3
+*.db
+
+# VSCode y entorno dev
+.vscode/
