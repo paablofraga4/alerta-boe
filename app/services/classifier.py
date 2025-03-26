@@ -3,26 +3,63 @@ from sentence_transformers import SentenceTransformer, util
 # Cargamos modelo preentrenado
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# Definimos las categorías y sus descripciones (puedes afinar esto)
 categorias = {
-    "Subvención": "Publicaciones relacionadas con ayudas económicas, subvenciones, incentivos financieros o convocatorias públicas para empresas, autónomos o entidades.",
-    
-    "Convenio colectivo": "Documentos que recogen acuerdos laborales entre representantes de trabajadores y empleadores, incluyendo condiciones de trabajo, salarios y jornadas.",
+    "Subvención": (
+        "Publicaciones relacionadas con ayudas económicas procedentes de entidades públicas. "
+        "Incluyen convocatorias para subvenciones, programas de incentivos, ayudas a la digitalización, "
+        "eficiencia energética, internacionalización o contratación. Muy relevantes para pequeñas empresas "
+        "y autónomos que busquen financiación externa o apoyo institucional."
+    ),
 
-    "Sentencia": "Resoluciones judiciales firmes emitidas por tribunales, incluyendo fallos, autos y decisiones que afectan a personas físicas o jurídicas.",
+    "Convenio colectivo": (
+        "Documentos que recogen acuerdos entre representantes sindicales y empleadores. "
+        "Regulan condiciones laborales como salarios, jornadas, vacaciones, categorías profesionales o permisos. "
+        "Pueden afectar a sectores completos o empresas concretas, y suelen tener efecto retroactivo."
+    ),
 
-    "Norma": "Leyes, reglamentos, decretos u otras disposiciones de carácter normativo que modifican o establecen nuevas obligaciones legales.",
+    "Sentencia": (
+        "Resoluciones judiciales emitidas por tribunales u órganos administrativos. "
+        "Incluyen fallos, autos o recursos con efectos legales. Pueden afectar a procedimientos sancionadores, "
+        "contratos públicos, situaciones fiscales o responsabilidades empresariales."
+    ),
 
-    "Empleo público": "Convocatorias de oposiciones, concursos públicos, bolsas de empleo o plazas ofertadas en administraciones públicas o instituciones oficiales.",
+    "Norma": (
+        "Leyes, decretos, reglamentos u órdenes ministeriales que crean o modifican obligaciones legales. "
+        "Estas normas pueden tener impacto directo sobre trámites, impuestos, licencias, seguridad laboral, "
+        "protección de datos u otros aspectos de cumplimiento normativo."
+    ),
 
-    "Nombramiento": "Anuncios oficiales de designación o cese de personas en cargos públicos, administrativos, judiciales o institucionales.",
+    "Empleo público": (
+        "Convocatorias de plazas en administraciones públicas: oposiciones, concursos, bolsas de trabajo, etc. "
+        "Incluye también resoluciones de nombramientos, listados de admitidos/excluidos y calendarios de pruebas. "
+        "Útil para quienes buscan trabajo en el sector público o prestan servicios a él."
+    ),
 
-    "Universidades": "Publicaciones relacionadas con el ámbito universitario, como plazas docentes, nombramientos académicos o resoluciones de rectorado.",
+    "Nombramiento": (
+        "Anuncios de designación, cese o renovación de cargos públicos: directores generales, jueces, vocales, "
+        "inspectores, etc. Estos cambios pueden tener relevancia si afectan a órganos que regulan tu actividad "
+        "o sector (ej. Agencia Tributaria, CNMC, ICEX…)."
+    ),
 
-    "Sanción": "Disposiciones relacionadas con expedientes sancionadores, multas administrativas, infracciones o penalizaciones legales.",
+    "Universidades": (
+        "Información relativa a universidades públicas o privadas: convocatorias de plazas de profesorado, "
+        "resoluciones de rectorado, normativas internas o becas específicas. Especialmente relevante si tu actividad "
+        "está relacionada con formación, investigación o colaboraciones institucionales."
+    ),
 
-    "Otro": "Contenido no encuadrado en ninguna de las categorías anteriores o que no contiene información relevante directa para el usuario."
+    "Sanción": (
+        "Resoluciones sancionadoras o disciplinarias por parte de la administración. "
+        "Incluye multas, expedientes, inhabilitaciones o cierres temporales. Pueden ser por incumplimientos laborales, "
+        "ambientales, fiscales o de contratación pública. Muy importante para conocer riesgos o precedentes."
+    ),
+
+    "Otro": (
+        "Contenido no categorizado o con bajo impacto directo. Puede tratarse de anuncios formales, rectificaciones, "
+        "modificaciones menores o comunicaciones sin implicaciones legales o económicas claras."
+    )
 }
+
+
 
 
 # Preprocesar las descripciones una sola vez

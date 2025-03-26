@@ -18,6 +18,53 @@ if "ultima_fecha" not in st.session_state:
     st.session_state.ultima_fecha = None
 
 # Hero Section
+
+
+import streamlit as st
+from app.services.semantic_search import buscar_similares
+from app.db.session import SessionLocal
+from app.db.models import Publication
+from datetime import datetime, timedelta
+import textwrap
+
+# Selector de modo
+modo = st.radio("¿Qué quieres hacer?", ["Explorar por fecha", "Consultor inteligente del BOE"])
+
+if modo == "Consultor inteligente del BOE":
+    st.title("🧠 Consultor inteligente del BOE")
+
+    consulta = st.text_input("Introduce tu pregunta o tema (ej: convenio del metal):")
+    categoria = st.selectbox("Filtrar por categoría (opcional)", ["Todas", "Sentencia", "Subvención", "Norma", "Convenio colectivo", "Sanción"])
+
+    if st.button("Buscar"):
+        db = SessionLocal()
+        desde = datetime.today().date() - timedelta(days=60)
+
+        query = db.query(Publication).filter(Publication.date >= desde)
+        if categoria != "Todas":
+            query = query.filter(Publication.category == categoria)
+
+        publicaciones = query.all()
+
+        if not publicaciones:
+            st.warning("No hay publicaciones recientes que coincidan.")
+        else:
+            publicaciones_dicts = [p.__dict__ for p in publicaciones]
+            similares = buscar_similares(consulta, publicaciones_dicts)
+
+            st.subheader(f"📄 Resultados más relevantes para: '{consulta}'")
+            for pub in similares[:10]:
+                titulo = pub.get("title", "[Sin título]")
+                st.markdown(f"**📌 {titulo}**")
+                st.markdown(f"- 🗓️ {pub.get('date', 'N/D')} | 🏷️ {pub.get('category', 'N/D')}")
+                resumen = pub.get("body") or pub.get("scope") or "Sin resumen"
+                st.markdown(f"> {textwrap.shorten(resumen, width=250)}\n")
+                if pub.get("url_pdf"):
+                    st.markdown(f"[⬇️ Descargar PDF]({pub['url_pdf']})")
+                elif pub.get("url_html"):
+                    st.markdown(f"[🔗 Ver en el BOE]({pub['url_html']})")
+                st.markdown("---")
+                
 st.markdown("""
     <div style='text-align: center; padding: 2rem 0;'>
         <h1 style='font-size: 3rem;'>📘 AlertaBOE</h1>

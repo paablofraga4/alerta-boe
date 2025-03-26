@@ -66,8 +66,8 @@ def fetch_boe_json(fecha: str):
                         url_pdf = url_pdf_data.get("texto") if isinstance(url_pdf_data, dict) else None
 
                         # ✅ páginas
-                        pagina_ini = item.get("pagina_inicial")
-                        pagina_fin = item.get("pagina_final")
+                        pagina_ini = url_pdf_data.get("pagina_inicial")
+                        pagina_fin = url_pdf_data.get("pagina_final")
                         try:
                             pagina_ini = int(pagina_ini)
                             pagina_fin = int(pagina_fin)
