@@ -33,6 +33,7 @@ class Publication(Base):
     title = Column(String)
     body = Column(String)
     category = Column(String)
+    extra_tag = Column(String, nullable=True)  # ✅ NUEVO CAMPO
 
     scope_id = Column(Integer, ForeignKey("scopes.id"))
     scope = relationship("Scope", back_populates="publications")

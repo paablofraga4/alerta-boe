@@ -7,10 +7,13 @@ from collections import Counter
 import pandas as pd
 import altair as alt
 import textwrap
+import html  # para escapar strings peligrosos
 
 from app.db.session import SessionLocal
 from app.db.models import Publication, Region, Scope
 from app.services.semantic_search import buscar_similares
+from app.services.intent_parser import detectar_region, detectar_scope, detectar_extra_tag
+
 
 # CONFIGURACIÓN GENERAL
 st.set_page_config(
@@ -164,7 +167,6 @@ st.markdown("""
 '>
 """, unsafe_allow_html=True)
 
-# MODO DE USO
 modo = st.radio("🧭 ¿Cómo quieres explorar el BOE hoy?", ["🔍 Explorar por fecha", "🤖 Consultor inteligente del BOE"], horizontal=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
@@ -172,23 +174,57 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 # COMPONENTE DE TARJETA
 def mostrar_tarjeta(pub):
-    resumen = pub.get("body") or pub.get("scope") or "Sin resumen"
-    resumen = textwrap.shorten(resumen, width=300)
-    st.markdown(f"""
-        <div class='tarjeta'>
-            <h4>📄 {pub.get("title", "[Sin título]")}</h4>
-            <p style='margin: 0.3rem 0;'>🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
-            🏛️ <b>Dpto:</b> {pub.get("departamento") or "N/D"}</p>
-            <p style='margin: 0.3rem 0;'>🏷️ <b>Categoría:</b> {pub.get("category") or "N/D"}</p>
-            <p style='margin: 0.3rem 0;'>📂 <b>Sección:</b> {pub.get("seccion") or "N/D"} / {pub.get("epigrafe") or "N/D"}</p>
-            <p style='margin-top: 1rem; font-style: italic; color:#5d5d5d;'>“{resumen}”</p>
-            <p style='margin-top: 1rem; font-weight:500;'>
-                {f"<a href='{pub.get("url_html")}' target='_blank'>🔗 Ver en el BOE</a>" if pub.get("url_html") else ""}
-                {" · " if pub.get("url_html") and pub.get("url_pdf") else ""}
-                {f"<a href='{pub.get("url_pdf")}' target='_blank'>⬇️ PDF</a>" if pub.get("url_pdf") else ""}
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
+    # El título se escapa, ya que es texto simple.
+    title = html.escape(pub.get("title", "[Sin título]"))
+    
+    # Si la publicación tiene etiqueta, se asume que el resumen es texto plano
+    # y se escapa y acorta; en caso contrario, se asume que contiene HTML y se deja intacto.
+    if pub.get("extra_tag"):
+        resumen = textwrap.shorten(html.escape(pub.get("body") or pub.get("scope") or "Sin resumen"), width=300)
+    else:
+        resumen = pub.get("body") or pub.get("scope") or "Sin resumen"
+    
+    depto = html.escape(pub.get("departamento") or "N/D")
+    seccion = html.escape(pub.get("seccion") or "N/D")
+    epigrafe = html.escape(pub.get("epigrafe") or "N/D")
+    extra_tag = html.escape(pub.get("extra_tag", "")) if pub.get("extra_tag") else "Sin etiqueta"
+
+    html_tarjeta = f"""
+    <div class='tarjeta'>
+        <h4>📄 {title}</h4>
+        <p style='margin: 0.3rem 0;'>
+            🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
+            🏛️ <b>Dpto:</b> {depto}
+        </p>
+        <p style='margin: 0.3rem 0;'>
+            🏷️ <b>Categoría:</b> {html.escape(pub.get("category") or "N/D")}
+        </p>
+    """
+
+    if extra_tag:
+        html_tarjeta += f"<p style='margin: 0.3rem 0;'>🔖 <b>Etiqueta:</b> {extra_tag}</p>"
+
+    html_tarjeta += f"""
+        <p style='margin: 0.3rem 0;'>
+            📂 <b>Sección:</b> {seccion} / {epigrafe}
+        </p>
+        <p style='margin-top: 1rem; font-style: italic; color:#5d5d5d;'>
+            “{resumen}”
+        </p>
+        <p style='margin-top: 1rem; font-weight:500;'>
+    """
+
+    enlaces = []
+    if pub.get("url_html"):
+        enlaces.append(f"<a href='{pub['url_html']}' target='_blank'>🔗 Ver en el BOE</a>")
+    if pub.get("url_pdf"):
+        enlaces.append(f"<a href='{pub['url_pdf']}' target='_blank'>⬇️ PDF</a>")
+
+    html_tarjeta += " · ".join(enlaces)
+    html_tarjeta += "</p></div>"
+
+    st.markdown(html_tarjeta, unsafe_allow_html=True)
+
 
 # CONSULTOR INTELIGENTE
 if modo == "🤖 Consultor inteligente del BOE":
@@ -196,44 +232,55 @@ if modo == "🤖 Consultor inteligente del BOE":
     consulta = st.text_input("Ej: ayudas para autónomos en Galicia")
 
     db = SessionLocal()
+    # Obtención de categorías disponibles y filtradas según las válidas
     categorias_en_bd = sorted({c[0] for c in db.query(Publication.category).distinct() if c[0]})
     categorias_filtradas = ["Todas"] + [cat for cat in categorias_en_bd if cat in CATEGORIAS_VALIDAS]
-    categoria = st.selectbox("🎯 Filtrar por categoría", categorias_filtradas)
+    categoria_seleccionada = st.selectbox("🎯 Filtrar por categoría", categorias_filtradas)
 
-    def detectar_region(texto, session):
-        texto = texto.lower()
-        for region in session.query(Region).all():
-            if region.name.lower() in texto:
-                return region.name
-        return None
+    # Listas para detección (las obtenemos una sola vez)
+    regiones_disponibles = [r.name for r in db.query(Region).all()]
+    scopes_disponibles = [s.name for s in db.query(Scope).all()]
 
-    def detectar_scope(texto, session):
-        texto = texto.lower()
-        for scope in session.query(Scope).all():
-            if scope.name.lower() in texto:
-                return scope.name
-        return None
+    # Detección automática usando las funciones disponibles
+    # Aquí podrías integrar el clasificador de categorías si lo tienes:
+    categoria_clasificada = None
+    try:
+        # Ejemplo: si tienes una función clasificar_categoria
+        categoria_clasificada = clasificar_categoria(consulta)
+    except Exception:
+        pass
+
+    region_detectada = detectar_region(consulta, regiones_disponibles)
+    scope_detectado = detectar_scope(consulta, scopes_disponibles)
+    extra_tag_detectado = detectar_extra_tag(consulta)
 
     if st.button("🔍 Buscar publicaciones"):
         desde = datetime.today().date() - timedelta(days=60)
         query = db.query(Publication).filter(Publication.date >= desde)
 
-        if categoria != "Todas":
-            query = query.filter(Publication.category == categoria)
+        # Prioridad: Si el usuario selecciona una categoría en el select, se utiliza.
+        # Si no, se usa el resultado del clasificador (si lo hay).
+        if categoria_seleccionada != "Todas":
+            query = query.filter(Publication.category == categoria_seleccionada)
+        elif categoria_clasificada:
+            query = query.filter(Publication.category == categoria_clasificada)
 
-        region = detectar_region(consulta, db)
-        scope = detectar_scope(consulta, db)
-
-        if scope:
-            query = query.join(Scope).filter(Scope.name == scope)
+        # Aplicar filtro por scope y extra_tag, en función de lo detectado
+        if scope_detectado:
+            query = query.join(Scope).filter(Scope.name.ilike(f"%{scope_detectado}%"))
+        if extra_tag_detectado:
+            query = query.filter(Publication.extra_tag.ilike(f"%{extra_tag_detectado}%"))
 
         resultados = query.all()
-        if region:
-            resultados = [p for p in resultados if any(r.name == region for r in p.regions)]
+
+        # Filtrado manual por región: se queda solo con aquellas publicaciones que incluyan la región detectada
+        if region_detectada:
+            resultados = [p for p in resultados if any(r.name.lower() == region_detectada.lower() for r in p.regions)]
 
         if not resultados:
             st.warning("❌ No se encontraron coincidencias recientes.")
         else:
+            # Puedes seguir usando buscar_similares para ordenar según la consulta
             similares = buscar_similares(consulta, [p.__dict__ for p in resultados])
             st.subheader(f"📄 Resultados para: *{consulta}*")
             for pub in similares[:10]:

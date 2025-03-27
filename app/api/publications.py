@@ -8,8 +8,7 @@ from app.db.models import Publication
 
 router = APIRouter()
 
-@router.get("/fecha/{fecha}")  # ✅ BIEN
-
+@router.get("/fecha/{fecha}")
 def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
     try:
         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
@@ -26,6 +25,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "title": pub.title,
             "body": pub.body,
             "category": pub.category,
+            "extra_tag": pub.extra_tag,  # ✅ NUEVO CAMPO INCLUIDO
             "scope": pub.scope.name if pub.scope else None,
             "departamento": pub.departamento,
             "seccion": pub.seccion,

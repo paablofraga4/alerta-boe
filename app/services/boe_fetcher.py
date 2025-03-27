@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from app.db.session import SessionLocal
 from app.db.models import Publication, Region, Scope
-from app.services.classifier import clasificar_categoria_por_regex
+from app.services.classifier import clasificar_categoria_por_regex, extra_tag_por_contexto  # ✅ IMPORT ACTUALIZADO
 
 # 🔍 Regex por comunidad autónoma
 REGION_REGEX = {
@@ -55,7 +55,6 @@ def get_or_create_scope(texto: str, session) -> int:
                 session.add(scope)
                 session.commit()
             return scope.id
-    # Por defecto
     default_scope = session.query(Scope).filter_by(name="Otro").first()
     if not default_scope:
         default_scope = Scope(name="Otro")
@@ -108,6 +107,8 @@ def fetch_boe_json(fecha: str):
                     for item in items:
                         titulo = item.get("titulo", "[Sin título]")
                         category = clasificar_categoria_por_regex(titulo)
+                        extra_tag = extra_tag_por_contexto(titulo)  # ✅ NUEVO CAMPO SEPARADO
+
                         boe_id = item.get("identificador")
                         url_html = item.get("url_html")
                         url_pdf_data = item.get("url_pdf", {})
@@ -132,6 +133,7 @@ def fetch_boe_json(fecha: str):
                             title=titulo,
                             body=titulo,
                             category=category,
+                            extra_tag=extra_tag,  # ✅ SE GUARDA EN LA DB
                             scope_id=scope_id,
                             boe_id=boe_id,
                             departamento=nombre_dep,
@@ -143,7 +145,7 @@ def fetch_boe_json(fecha: str):
                         )
 
                         session.add(pub)
-                        session.flush()  # 🔥 Clave para tener el ID del publication antes de relacionar regiones
+                        session.flush()
                         pub.regions = regiones
                         publicaciones += 1
 
