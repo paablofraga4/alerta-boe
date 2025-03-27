@@ -1,8 +1,67 @@
 import requests
-from app.db.session import SessionLocal
-from app.db.models import Publication
-from app.services.classifier import classify_with_ai
+import re
 from datetime import datetime
+from app.db.session import SessionLocal
+from app.db.models import Publication, Region, Scope
+from app.services.classifier import clasificar_categoria_por_regex
+
+# 🔍 Regex por comunidad autónoma
+REGION_REGEX = {
+    "Andalucía": r"\b(andaluc[ií]a|junta de andaluc[ií]a)\b",
+    "Aragón": r"\b(arag[oó]n|gobierno de arag[oó]n)\b",
+    "Asturias": r"\b(asturias|principado de asturias)\b",
+    "Islas Baleares": r"\b(illes balears|baleares|islas baleares)\b",
+    "Canarias": r"\b(canarias|gobierno de canarias)\b",
+    "Cantabria": r"\bcantabria\b",
+    "Castilla-La Mancha": r"\bcastilla[- ]la mancha\b",
+    "Castilla y León": r"\bcastilla y le[oó]n\b",
+    "Cataluña": r"\b(catalu[ññ]a|catalunya)\b",
+    "Comunidad Valenciana": r"\b(comunidad valenciana|generalitat valenciana)\b",
+    "Extremadura": r"\bextremadura\b",
+    "Galicia": r"\b(galicia|xunta de galicia)\b",
+    "Madrid": r"\b(comunidad de madrid|madrid)\b",
+    "Murcia": r"\b(murcia|servicio murciano de salud)\b",
+    "Navarra": r"\b(navarra|comunidad foral de navarra)\b",
+    "País Vasco": r"\b(pa[ií]s vasco|euskadi)\b",
+    "La Rioja": r"\bla rioja\b",
+    "Ceuta": r"\bceuta\b",
+    "Melilla": r"\bmelilla\b"
+}
+
+# 🔎 Scope: UE / Nacional / Autonómico
+SCOPE_RULES = [
+    (r"\b(unión europea|europeo|ue)\b", "Europeo"),
+    (r"\b(estado|gobierno de españa|bolet[ií]n oficial del estado)\b", "Nacional"),
+    (r"|".join(pat for pat in REGION_REGEX.values()), "Autonómico"),
+]
+
+def detectar_regiones(texto: str, session):
+    texto = texto.lower()
+    regiones_detectadas = []
+    for region, patron in REGION_REGEX.items():
+        if re.search(patron, texto):
+            region_obj = session.query(Region).filter_by(name=region).first()
+            if region_obj and region_obj not in regiones_detectadas:
+                regiones_detectadas.append(region_obj)
+    return regiones_detectadas
+
+def get_or_create_scope(texto: str, session) -> int:
+    texto = texto.lower()
+    for regex, nombre_scope in SCOPE_RULES:
+        if re.search(regex, texto):
+            scope = session.query(Scope).filter_by(name=nombre_scope).first()
+            if not scope:
+                scope = Scope(name=nombre_scope)
+                session.add(scope)
+                session.commit()
+            return scope.id
+    # Por defecto
+    default_scope = session.query(Scope).filter_by(name="Otro").first()
+    if not default_scope:
+        default_scope = Scope(name="Otro")
+        session.add(default_scope)
+        session.commit()
+    return default_scope.id
 
 def fetch_boe_json(fecha: str):
     url = f"https://boe.es/datosabiertos/api/boe/sumario/{fecha}"
@@ -12,7 +71,6 @@ def fetch_boe_json(fecha: str):
     if response.status_code == 404:
         print(f"❌ No hay BOE publicado para la fecha {fecha} (¿domingo o festivo?)")
         return
-
     elif response.status_code != 200:
         print(f"❌ Error {response.status_code} al consultar el BOE")
         return
@@ -29,8 +87,6 @@ def fetch_boe_json(fecha: str):
     for dia in diario:
         for seccion in dia.get("seccion", []):
             nombre_seccion = seccion.get("nombre") or "N/D"
-
-            # 🔧 Normalizar departamento
             departamentos = seccion.get("departamento", [])
             if isinstance(departamentos, str):
                 departamentos = [{"nombre": departamentos}]
@@ -39,74 +95,56 @@ def fetch_boe_json(fecha: str):
 
             for departamento in departamentos:
                 nombre_dep = departamento.get("nombre") or "N/D"
-
-                # 🔧 Normalizar epígrafes
                 epigrafes = departamento.get("epigrafe", [])
                 if isinstance(epigrafes, dict):
                     epigrafes = [epigrafes]
 
                 for epigrafe in epigrafes:
                     nombre_epigrafe = epigrafe.get("nombre") or "N/D"
-
-                    # 🔧 Normalizar ítems
                     items = epigrafe.get("item", [])
                     if isinstance(items, dict):
                         items = [items]
 
                     for item in items:
                         titulo = item.get("titulo", "[Sin título]")
-                        category = classify_with_ai(titulo)
-                        scope = f"{nombre_seccion} / {nombre_dep}"
-
-                        boe_id = item.get("identificador", None)
-                        url_html = item.get("url_html", None)
-
-                        # ✅ url_pdf
-                        url_pdf_data = item.get("url_pdf")
+                        category = clasificar_categoria_por_regex(titulo)
+                        boe_id = item.get("identificador")
+                        url_html = item.get("url_html")
+                        url_pdf_data = item.get("url_pdf", {})
                         url_pdf = url_pdf_data.get("texto") if isinstance(url_pdf_data, dict) else None
 
-                        # ✅ páginas
-                        pagina_ini = url_pdf_data.get("pagina_inicial")
-                        pagina_fin = url_pdf_data.get("pagina_final")
                         try:
-                            pagina_ini = int(pagina_ini)
-                            pagina_fin = int(pagina_fin)
+                            pagina_ini = int(url_pdf_data.get("pagina_inicial"))
+                            pagina_fin = int(url_pdf_data.get("pagina_final"))
                             pages = pagina_fin - pagina_ini + 1
                         except (TypeError, ValueError):
                             pages = None
 
-                        # ❌ Duplicado por boe_id
-                        exists = session.query(Publication).filter_by(boe_id=boe_id).first()
-                        if exists:
-                            # print("🔍 Publicación:")
-                            # print(f"  📰 {titulo}")
-                            # print(f"  🏛️ Departamento: {nombre_dep}")
-                            # print(f"  📂 Sección: {nombre_seccion}")
-                            # print(f"  📑 Epígrafe: {nombre_epigrafe}")
+                        if session.query(Publication).filter_by(boe_id=boe_id).first():
                             continue
+
+                        texto_completo = f"{nombre_seccion} {nombre_dep} {nombre_epigrafe} {titulo}"
+                        regiones = detectar_regiones(texto_completo, session)
+                        scope_id = get_or_create_scope(texto_completo, session)
 
                         pub = Publication(
                             date=datetime.strptime(fecha, "%Y%m%d").date(),
                             title=titulo,
                             body=titulo,
                             category=category,
-                            scope=scope,
+                            scope_id=scope_id,
                             boe_id=boe_id,
                             departamento=nombre_dep,
                             seccion=nombre_seccion,
                             epigrafe=nombre_epigrafe,
                             url_html=url_html,
                             url_pdf=url_pdf,
-                            pages=pages
+                            pages=pages,
                         )
-                        # print("🔍 Publicación:")
-                        # print(f"  📰 {titulo}")
-                        # print(f"  🏛️ Departamento: {nombre_dep}")
-                        # print(f"  📂 Sección: {nombre_seccion}")
-                        # print(f"  📑 Epígrafe: {nombre_epigrafe}")
-
 
                         session.add(pub)
+                        session.flush()  # 🔥 Clave para tener el ID del publication antes de relacionar regiones
+                        pub.regions = regiones
                         publicaciones += 1
 
     session.commit()

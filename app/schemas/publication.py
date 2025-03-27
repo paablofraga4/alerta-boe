@@ -1,17 +1,14 @@
-from pydantic import BaseModel, ConfigDict
-from datetime import date
+from pydantic import BaseModel
 from typing import Optional
+from datetime import date
 
 class PublicationOut(BaseModel):
     id: int
     date: date
     title: str
-    body: str
-    category: str
-    scope: str
-
-    # Campos nuevos
-    boe_id: Optional[str]
+    body: Optional[str]
+    category: Optional[str]
+    scope: Optional[str]  # Solo el nombre del ámbito
     departamento: Optional[str]
     seccion: Optional[str]
     epigrafe: Optional[str]
@@ -19,4 +16,5 @@ class PublicationOut(BaseModel):
     url_pdf: Optional[str]
     pages: Optional[int]
 
-    model_config = ConfigDict(from_attributes=True)  # 🔁 reemplaza orm_mode
+    class Config:
+        orm_mode = True

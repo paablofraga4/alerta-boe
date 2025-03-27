@@ -2,195 +2,280 @@ import streamlit as st
 import subprocess
 import requests
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta
 from collections import Counter
 import pandas as pd
 import altair as alt
-from app.services.semantic_search import buscar_similares  # Importar el buscador inteligente
+import textwrap
 
-# Config global
-st.set_page_config(page_title="AlertaBOE", layout="wide")
+from app.db.session import SessionLocal
+from app.db.models import Publication, Region, Scope
+from app.services.semantic_search import buscar_similares
 
-# Estado global
+# CONFIGURACIÓN GENERAL
+st.set_page_config(
+    page_title="📘 AlertaBOE",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# INYECCIÓN DE ESTILOS Y ANIMACIONES
+st.markdown("""
+<style>
+html, body, [class*="css"] {
+    font-family: 'Segoe UI', sans-serif;
+    scroll-behavior: smooth;
+}
+
+/* TITULARES */
+h1.big-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, #1abc9c, #3498db);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+.subtitle {
+    font-size: 1.3rem;
+    color: #7f8c8d;
+    margin-bottom: 2rem;
+}
+
+/* ANIMACIONES */
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(20px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+
+.tarjeta {
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+    padding: 1.4rem 1.8rem;
+    margin-bottom: 1.5rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border-left: 5px solid #1abc9c80;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tarjeta:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.tarjeta h4 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+/* BOTONES */
+div.stButton > button {
+    background: linear-gradient(to right, #1abc9c, #16a085);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+div.stButton > button:hover {
+    background: linear-gradient(to right, #16a085, #1abc9c);
+    transform: scale(1.03);
+}
+
+/* CAMPOS INPUT */
+input, select, textarea {
+    transition: box-shadow 0.3s ease, border 0.3s ease;
+}
+input:focus, select:focus, textarea:focus {
+    border: 1.5px solid #1abc9c !important;
+    box-shadow: 0 0 6px rgba(26, 188, 156, 0.3) !important;
+}
+
+/* RADIO BUTTONS */
+div.row-widget.stRadio > div {
+    gap: 1rem;
+}
+
+/* LINKS */
+a {
+    text-decoration: none;
+    color: #2980b9;
+}
+a:hover {
+    color: #1abc9c;
+    text-decoration: underline;
+}
+
+hr {
+    border-top: 2px solid #ecf0f1;
+    margin: 2rem 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# CABECERA
+st.markdown("""
+<div style='
+    text-align: center;
+    padding: 1.2rem 0 0.5rem 0;
+    position: relative;
+'>
+    <div style="position: absolute; right: 25px; top: 10px; font-size: 2.2rem; animation: float 3s ease-in-out infinite;">
+        📡
+    </div>
+    <h1 class='big-title'>📘 Alerta<span style='color:#1abc9c;'>BOE</span></h1>
+    <p class='subtitle'>Tu radar inteligente para detectar lo importante en el BOE</p>
+    <hr/>
+</div>
+
+<style>
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ESTADO GLOBAL
 if "publicaciones" not in st.session_state:
     st.session_state.publicaciones = []
 if "ultima_fecha" not in st.session_state:
     st.session_state.ultima_fecha = None
 
-# Hero Section
+# CATEGORÍAS OFICIALES
+CATEGORIAS_VALIDAS = [
+    'Agroalimentario', 'Asuntos sociales', 'Convenio', 'Cultura', 'Economía',
+    'Educación', 'Empleo público', 'Empresa y comercio', 'Infraestructura',
+    'Justicia', 'Medio ambiente', 'Norma', 'Sanción', 'Sanidad',
+    'Seguridad', 'Sentencia', 'Subvención', 'Tecnología'
+]
+
+# MODO DE USO
+st.markdown("""
+<div style='
+    background-color: #f7fafa;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    margin-bottom: 1.5rem;
+'>
+""", unsafe_allow_html=True)
+
+# MODO DE USO
+modo = st.radio("🧭 ¿Cómo quieres explorar el BOE hoy?", ["🔍 Explorar por fecha", "🤖 Consultor inteligente del BOE"], horizontal=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
 
 
-import streamlit as st
-from app.services.semantic_search import buscar_similares
-from app.db.session import SessionLocal
-from app.db.models import Publication
-from datetime import datetime, timedelta
-import textwrap
+# COMPONENTE DE TARJETA
+def mostrar_tarjeta(pub):
+    resumen = pub.get("body") or pub.get("scope") or "Sin resumen"
+    resumen = textwrap.shorten(resumen, width=300)
+    st.markdown(f"""
+        <div class='tarjeta'>
+            <h4>📄 {pub.get("title", "[Sin título]")}</h4>
+            <p style='margin: 0.3rem 0;'>🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
+            🏛️ <b>Dpto:</b> {pub.get("departamento") or "N/D"}</p>
+            <p style='margin: 0.3rem 0;'>🏷️ <b>Categoría:</b> {pub.get("category") or "N/D"}</p>
+            <p style='margin: 0.3rem 0;'>📂 <b>Sección:</b> {pub.get("seccion") or "N/D"} / {pub.get("epigrafe") or "N/D"}</p>
+            <p style='margin-top: 1rem; font-style: italic; color:#5d5d5d;'>“{resumen}”</p>
+            <p style='margin-top: 1rem; font-weight:500;'>
+                {f"<a href='{pub.get("url_html")}' target='_blank'>🔗 Ver en el BOE</a>" if pub.get("url_html") else ""}
+                {" · " if pub.get("url_html") and pub.get("url_pdf") else ""}
+                {f"<a href='{pub.get("url_pdf")}' target='_blank'>⬇️ PDF</a>" if pub.get("url_pdf") else ""}
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Selector de modo
-modo = st.radio("¿Qué quieres hacer?", ["Explorar por fecha", "Consultor inteligente del BOE"])
+# CONSULTOR INTELIGENTE
+if modo == "🤖 Consultor inteligente del BOE":
+    st.subheader("🤖 ¿Qué necesitas encontrar?")
+    consulta = st.text_input("Ej: ayudas para autónomos en Galicia")
 
-if modo == "Consultor inteligente del BOE":
-    st.title("🧠 Consultor inteligente del BOE")
+    db = SessionLocal()
+    categorias_en_bd = sorted({c[0] for c in db.query(Publication.category).distinct() if c[0]})
+    categorias_filtradas = ["Todas"] + [cat for cat in categorias_en_bd if cat in CATEGORIAS_VALIDAS]
+    categoria = st.selectbox("🎯 Filtrar por categoría", categorias_filtradas)
 
-    consulta = st.text_input("Introduce tu pregunta o tema (ej: convenio del metal):")
-    categoria = st.selectbox("Filtrar por categoría (opcional)", ["Todas", "Sentencia", "Subvención", "Norma", "Convenio colectivo", "Sanción"])
+    def detectar_region(texto, session):
+        texto = texto.lower()
+        for region in session.query(Region).all():
+            if region.name.lower() in texto:
+                return region.name
+        return None
 
-    if st.button("Buscar"):
-        db = SessionLocal()
+    def detectar_scope(texto, session):
+        texto = texto.lower()
+        for scope in session.query(Scope).all():
+            if scope.name.lower() in texto:
+                return scope.name
+        return None
+
+    if st.button("🔍 Buscar publicaciones"):
         desde = datetime.today().date() - timedelta(days=60)
-
         query = db.query(Publication).filter(Publication.date >= desde)
+
         if categoria != "Todas":
             query = query.filter(Publication.category == categoria)
 
-        publicaciones = query.all()
+        region = detectar_region(consulta, db)
+        scope = detectar_scope(consulta, db)
 
-        if not publicaciones:
-            st.warning("No hay publicaciones recientes que coincidan.")
+        if scope:
+            query = query.join(Scope).filter(Scope.name == scope)
+
+        resultados = query.all()
+        if region:
+            resultados = [p for p in resultados if any(r.name == region for r in p.regions)]
+
+        if not resultados:
+            st.warning("❌ No se encontraron coincidencias recientes.")
         else:
-            publicaciones_dicts = [p.__dict__ for p in publicaciones]
-            similares = buscar_similares(consulta, publicaciones_dicts)
-
-            st.subheader(f"📄 Resultados más relevantes para: '{consulta}'")
+            similares = buscar_similares(consulta, [p.__dict__ for p in resultados])
+            st.subheader(f"📄 Resultados para: *{consulta}*")
             for pub in similares[:10]:
-                titulo = pub.get("title", "[Sin título]")
-                st.markdown(f"**📌 {titulo}**")
-                st.markdown(f"- 🗓️ {pub.get('date', 'N/D')} | 🏷️ {pub.get('category', 'N/D')}")
-                resumen = pub.get("body") or pub.get("scope") or "Sin resumen"
-                st.markdown(f"> {textwrap.shorten(resumen, width=250)}\n")
-                if pub.get("url_pdf"):
-                    st.markdown(f"[⬇️ Descargar PDF]({pub['url_pdf']})")
-                elif pub.get("url_html"):
-                    st.markdown(f"[🔗 Ver en el BOE]({pub['url_html']})")
-                st.markdown("---")
-                
-st.markdown("""
-    <div style='text-align: center; padding: 2rem 0;'>
-        <h1 style='font-size: 3rem;'>📘 AlertaBOE</h1>
-        <p style='font-size: 1.2rem; color: #6c6c6c;'>Tu radar inteligente para detectar lo importante en el BOE</p>
-    </div>
-""", unsafe_allow_html=True)
+                mostrar_tarjeta(pub)
+        db.close()
 
-# Panel de Control
-st.markdown("### 🎛️ Panel de control")
-col1, col2, col3 = st.columns([2, 1, 1])
-with col1:
-    fecha_obj = st.date_input("📅 Fecha a consultar", value=date.today())
-with col2:
-    ejecutar = st.button("🔍 Buscar")
-with col3:
-    reset = st.button("🔄 Reiniciar")
+# CONSULTA POR FECHA
+else:
+    st.subheader("📅 Consulta por fecha")
+    fecha_obj = st.date_input("Selecciona una fecha", value=date.today())
+    if st.button("🔍 Buscar publicaciones del día"):
+        fecha_str = fecha_obj.strftime("%Y%m%d")
+        if st.session_state.ultima_fecha != fecha_str:
+            with st.spinner("⏳ Consultando el BOE..."):
+                result = subprocess.run([sys.executable, "-m", "scripts.fetch_boe", fecha_str])
+                if result.returncode == 0:
+                    url_api = f"http://127.0.0.1:8000/publicaciones/fecha/{fecha_obj.strftime('%Y-%m-%d')}"
+                    try:
+                        response = requests.get(url_api)
+                        if response.status_code == 200:
+                            st.session_state.publicaciones = response.json()
+                            st.session_state.ultima_fecha = fecha_str
+                            st.success("✅ Publicaciones cargadas correctamente.")
+                        else:
+                            st.error("❌ Error en la API.")
+                    except Exception as e:
+                        st.error(f"⚠️ Fallo de conexión: {e}")
+        else:
+            st.info("Ya tienes esta fecha cargada ✅")
 
-if reset:
-    st.session_state.publicaciones = []
-    st.session_state.ultima_fecha = None
-    st.experimental_rerun()
-
-if ejecutar:
-    fecha = fecha_obj.strftime("%Y%m%d")
-    if st.session_state.ultima_fecha != fecha:
-        with st.spinner("📡 Consultando el BOE..."):
-            result = subprocess.run([sys.executable, "-m", "scripts.fetch_boe", fecha])
-            if result.returncode == 0:
-                url_api = f"http://127.0.0.1:8000/publicaciones/fecha/{fecha_obj.strftime('%Y-%m-%d')}"
-                try:
-                    response = requests.get(url_api)
-                    if response.status_code == 200:
-                        st.session_state.publicaciones = response.json()
-                        st.session_state.ultima_fecha = fecha
-                        st.success("✅ Consulta completada.")
-                    else:
-                        st.error(f"❌ Error al consultar la API: {response.status_code}")
-                except Exception as e:
-                    st.error(f"⚠️ No se pudo conectar con la API: {e}")
-            else:
-                st.error("❌ Error al ejecutar el scraping.")
-    else:
-        st.info("Ya tienes cargadas las publicaciones de esa fecha ✅")
-
-# Mostrar publicaciones
+# DASHBOARD
 if st.session_state.publicaciones:
     publicaciones = st.session_state.publicaciones
-
-    # Buscador semántico (🔥 nuevo)
-    st.markdown("### 🔍 Búsqueda inteligente")
-    query = st.text_input("🔎 Buscar por palabra clave o frase (ej: ayudas para autónomos)")
-    if query:
-        publicaciones = buscar_similares(query, publicaciones)
-        st.success(f"🔎 Mostrando resultados más cercanos a: \"{query}\"")
-
-    # Filtro por categoría
-    st.markdown("### 🔎 Filtrar por categoría")
-    categorias_raw = list(set([p.get("category", "otro") for p in publicaciones]))
-    categorias_disponibles = sorted(categorias_raw, key=str.lower)
-    categorias_formateadas = [cat.capitalize() for cat in categorias_disponibles]
-    formato_a_original = {cat.capitalize(): cat for cat in categorias_disponibles}
-
-    categoria_seleccionada = st.selectbox("Selecciona una categoría:", ["Todas"] + categorias_formateadas)
-
-    if categoria_seleccionada != "Todas":
-        publicaciones = [p for p in publicaciones if p.get("category") == formato_a_original[categoria_seleccionada]]
-
-    # Dashboard resumen
-    st.markdown("### 📊 Resumen del BOE")
-    categorias = [p.get("category") for p in publicaciones if p.get("category")]
-    departamentos = [p.get("departamento") for p in publicaciones if p.get("departamento")]
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("📄 Total publicaciones", len(publicaciones))
-        top_cat = Counter(categorias).most_common(1)
-        top_dep = Counter(departamentos).most_common(1)
-        st.metric("🏷️ Categoría top", top_cat[0][0].capitalize() if top_cat else "N/D")
-        st.metric("🏛️ Dpto. top", top_dep[0][0] if top_dep else "N/D")
-    with col2:
-        if categorias:
-            df_cat = pd.DataFrame(Counter(categorias).items(), columns=["Categoría", "Cantidad"])
-            df_cat["Categoría"] = df_cat["Categoría"].str.capitalize()
-            chart = alt.Chart(df_cat).mark_bar().encode(
-                x="Cantidad:Q",
-                y=alt.Y("Categoría:N", sort='-x'),
-                tooltip=["Categoría", "Cantidad"]
-            ).properties(height=220)
-            st.altair_chart(chart, use_container_width=True)
-
-    # Informe Ejecutivo
-    st.markdown("### 🧠 Informe Ejecutivo")
-    total = len(publicaciones)
-    nombramientos = [p for p in publicaciones if "nombramiento" in (p.get("title") or "").lower()]
-    leyes = [p for p in publicaciones if any(w in (p.get("title") or "").lower() for w in ["ley", "reglamento", "normativa"])]
-    subvenciones = [p for p in publicaciones if any(w in (p.get("title") or "").lower() for w in ["subvención", "ayuda"])]
-    empleo = [p for p in publicaciones if any(w in (p.get("title") or "").lower() for w in ["oposición", "concurso", "plazas"])]
-    universidades = [p for p in publicaciones if "universidad" in (p.get("departamento") or "").lower()]
-
-    st.info(f"""
-📌 Hoy se han publicado {total} disposiciones oficiales:
-- 🧾 {len(leyes)} normas o leyes
-- 💸 {len(subvenciones)} subvenciones
-- 👨‍⚖️ {len(nombramientos)} nombramientos
-- 🧑‍💼 {len(empleo)} empleo público
-- 📚 {len(universidades)} universidades
-""")
-
-    # Publicaciones detalladas
-    st.markdown("### 📰 Publicaciones")
+    st.subheader("📰 Publicaciones")
     for pub in publicaciones:
-        with st.container(border=True):
-            titulo = pub.get("title", "[Sin título]")
-            url = pub.get("url_html")
-            categoria = (pub.get("category") or "N/D").capitalize()
-            st.markdown(f"**📄 [{titulo}]({url})**" if url else f"**📄 {titulo}**")
-            st.markdown(f"🏷️ Categoría: `{categoria}`")
-            st.write(f"📅 Fecha: `{pub.get('date', 'N/D')}`")
-            st.write(f"🏛️ Departamento: `{pub.get('departamento') or 'N/D'}`")
-            st.write(f"📂 Sección / Epígrafe: `{pub.get('seccion') or 'N/D'} / {pub.get('epigrafe') or 'N/D'}`")
-            st.write(f"📄 Páginas: `{pub.get('pages') or 'N/D'}`")
-            pdf = pub.get("url_pdf")
-            if pdf:
-                st.markdown(f"[⬇️ Descargar PDF]({pdf})")
-            else:
-                st.markdown("📎 PDF no disponible.")
+        mostrar_tarjeta(pub)
 
-# Footer
-st.markdown("---")
-st.markdown("<div style='text-align:center; font-size:0.85rem; color:gray;'>Hecho con 💙 por Pablo · AlertaBOE · 2025</div>", unsafe_allow_html=True)
+# 🎁 REGALITO VISUAL – Mensaje final animado
+st.markdown(f"""
+<hr>
+<div style='text-align:center; font-size:0.95rem; color:#7f8c8d; padding: 2rem 0; animation: fadeIn 1s ease forwards;'>
+    <p>Hecho con 💙 en Galicia · <b>AlertaBOE</b> · {datetime.now().year}</p>
+    <p style="font-size:1.1rem; margin-top:1rem;">✨ Que hoy encuentres justo la publicación que estabas esperando ✨</p>
+</div>
+""", unsafe_allow_html=True)

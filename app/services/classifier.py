@@ -1,107 +1,70 @@
 from sentence_transformers import SentenceTransformer, util
+import re
 
 # Cargamos modelo preentrenado
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-categorias = {
-    "Subvención": (
-        "Publicaciones relacionadas con ayudas económicas procedentes de entidades públicas. "
-        "Incluyen convocatorias para subvenciones, programas de incentivos, ayudas a la digitalización, "
-        "eficiencia energética, internacionalización o contratación. Muy relevantes para pequeñas empresas "
-        "y autónomos que busquen financiación externa o apoyo institucional."
-    ),
+CATEGORIAS_REGEX = [
+    # Subvenciones y ayudas
+    (r"\bsubvencione?s?\b|\bayudas?\b|\bfondos europeos\b", "Subvención"),
 
-    "Convenio colectivo": (
-        "Documentos que recogen acuerdos entre representantes sindicales y empleadores. "
-        "Regulan condiciones laborales como salarios, jornadas, vacaciones, categorías profesionales o permisos. "
-        "Pueden afectar a sectores completos o empresas concretas, y suelen tener efecto retroactivo."
-    ),
+    # Empleo público y personal
+    (r"\bnombramiento?s?\b|\bdesignaci[oó]n\b|\bdestinos?\b|\bceses?\b|\bsituaciones?\b", "Empleo público"),
+    (r"\boposiciones?\b|\bconcurso\b|\bbolsa de trabajo\b|\bprocedimiento de selecci[oó]n\b", "Empleo público"),
 
-    "Sentencia": (
-        "Resoluciones judiciales emitidas por tribunales u órganos administrativos. "
-        "Incluyen fallos, autos o recursos con efectos legales. Pueden afectar a procedimientos sancionadores, "
-        "contratos públicos, situaciones fiscales o responsabilidades empresariales."
-    ),
+    # Convenios y acuerdos
+    (r"\bconvenios?\b|\bacuerdos internacionales?\b|\bcolaboraci[oó]n\b", "Convenio"),
 
-    "Norma": (
-        "Leyes, decretos, reglamentos u órdenes ministeriales que crean o modifican obligaciones legales. "
-        "Estas normas pueden tener impacto directo sobre trámites, impuestos, licencias, seguridad laboral, "
-        "protección de datos u otros aspectos de cumplimiento normativo."
-    ),
+    # Sanciones
+    (r"\bsanciones?\b|\bmulta?s?\b|\bexpediente sancionador\b", "Sanción"),
 
-    "Empleo público": (
-        "Convocatorias de plazas en administraciones públicas: oposiciones, concursos, bolsas de trabajo, etc. "
-        "Incluye también resoluciones de nombramientos, listados de admitidos/excluidos y calendarios de pruebas. "
-        "Útil para quienes buscan trabajo en el sector público o prestan servicios a él."
-    ),
+    # Sentencias y resoluciones judiciales
+    (r"\bsentencia\b|\btribunal\b|\bresoluci[oó]n judicial\b|\bjuzgado\b", "Sentencia"),
 
-    "Nombramiento": (
-        "Anuncios de designación, cese o renovación de cargos públicos: directores generales, jueces, vocales, "
-        "inspectores, etc. Estos cambios pueden tener relevancia si afectan a órganos que regulan tu actividad "
-        "o sector (ej. Agencia Tributaria, CNMC, ICEX…)."
-    ),
+    # Normas, leyes y reglamentos
+    (r"\bnormas?\b|\breglamentos?\b|\bleyes?\b|\bestatutos?\b|\breformas?\b", "Norma"),
 
-    "Universidades": (
-        "Información relativa a universidades públicas o privadas: convocatorias de plazas de profesorado, "
-        "resoluciones de rectorado, normativas internas o becas específicas. Especialmente relevante si tu actividad "
-        "está relacionada con formación, investigación o colaboraciones institucionales."
-    ),
+    # Educación y universidades
+    (r"\bplanes de estudios?\b|\benseñanza\b|\beducaci[oó]n\b|\bcursos\b|\bbecas?\b", "Educación"),
 
-    "Sanción": (
-        "Resoluciones sancionadoras o disciplinarias por parte de la administración. "
-        "Incluye multas, expedientes, inhabilitaciones o cierres temporales. Pueden ser por incumplimientos laborales, "
-        "ambientales, fiscales o de contratación pública. Muy importante para conocer riesgos o precedentes."
-    ),
+    # Sanidad y salud
+    (r"\bsalud\b|\bservicio(s)? de salud\b|\bespecialidades sanitarias\b", "Sanidad"),
 
-    "Otro": (
-        "Contenido no categorizado o con bajo impacto directo. Puede tratarse de anuncios formales, rectificaciones, "
-        "modificaciones menores o comunicaciones sin implicaciones legales o económicas claras."
-    )
-}
+    # Medio ambiente y sostenibilidad
+    (r"\bmedio ambiente\b|\bimpacto ambiental\b|\bresiduos?\b|\benerg[ií]a renovable\b", "Medio ambiente"),
 
+    # Economía, deuda, presupuestos
+    (r"\bpresupuestos?\b|\bdeuda\b|\bimpuestos?\b|\bmercado de valores\b", "Economía"),
 
+    # Infraestructuras y transporte
+    (r"\binfraestructura(s)?\b|\btransporte\b|\bobras p[úu]blicas\b|\bcarreteras?\b", "Infraestructura"),
 
+    # Agricultura y sector primario
+    (r"\bagricultura\b|\bganado\b|\bpesca\b|\bvit[ií]cola\b|\bPAC\b", "Agroalimentario"),
 
-# Preprocesar las descripciones una sola vez
-categoria_embeddings = {
-    cat: model.encode(desc, convert_to_tensor=True) for cat, desc in categorias.items()
-}
+    # Tecnología y digitalización
+    (r"\btelecomunicaciones\b|\btelevisi[oó]n\b|\bTIC\b|\bdigital\b", "Tecnología"),
 
-def classify_with_ai(text: str) -> str:
-    if not text:
-        return "otro"
+    # Justicia y legal
+    (r"\bjusticia\b|\bprocedimientos judiciales?\b|\bletrados?\b", "Justicia"),
 
-    text_embedding = model.encode(text, convert_to_tensor=True)
+    # Seguridad y defensa
+    (r"\bseguridad\b|\bdefensa\b|\bFuerzas Armadas\b", "Seguridad"),
 
-    # Calculamos similitud coseno con cada categoría
-    scores = {
-        cat: float(util.cos_sim(text_embedding, emb))
-        for cat, emb in categoria_embeddings.items()
-    }
+    # Cultura y patrimonio
+    (r"\bbienes de inter[eé]s cultural\b|\bcultura\b|\bpatrimonio\b", "Cultura"),
 
-    mejor_categoria = max(scores, key=scores.get)
-    return mejor_categoria
+    # Igualdad, diversidad, inclusión
+    (r"\bigualdad\b|\bdiversidad\b|\binclusi[oó]n\b|\bdiscapacidad\b", "Asuntos sociales"),
+
+    # Comercio y empresas
+    (r"\bempresas?\b|\baut[oó]nomos?\b|\bcomercio\b|\bemprendimiento\b", "Empresa y comercio"),
+]
 
 
-
-# def classify_text(text: str) -> str:
-#     text = text.lower()
-
-#     if any(word in text for word in ["subvención", "ayuda", "convocatoria", "financiación"]):
-#         return "Subvención"
-#     elif any(word in text for word in ["sanción", "infracción", "multa", "expediente"]):
-#         return "Sanción"
-#     elif any(word in text for word in ["ley", "real decreto", "normativa", "reglamento", "modificación"]):
-#         return "Norma"
-#     elif any(word in text for word in ["presupuesto", "impuesto", "tributo", "ejercicio económico"]):
-#         return "Presupuesto"
-#     elif any(word in text for word in ["oposición", "concurso", "plazas", "convocatoria de empleo"]):
-#         return "Empleo público"
-#     elif any(word in text for word in ["nombramiento", "cese", "designación", "resolución de nombramiento"]):
-#         return "Nombramiento"
-#     elif "universidad" in text or "catedrático" in text or "profesor titular" in text:
-#         return "Universidades"
-#     elif any(word in text for word in ["medio ambiente", "sostenibilidad", "ordenación del territorio"]):
-#         return "Medio ambiente"
-#     else:
-#         return "Otro"
+def clasificar_categoria_por_regex(texto: str) -> str:
+    texto = texto.lower()
+    for patron, categoria in CATEGORIAS_REGEX:
+        if re.search(patron, texto):
+            return categoria
+    return "Otro"
