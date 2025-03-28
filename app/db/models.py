@@ -47,3 +47,22 @@ class Publication(Base):
     url_html = Column(String)
     url_pdf = Column(String)
     pages = Column(Integer)
+
+# 🆕 Legislación consolidada
+class Legislacion(Base):
+    __tablename__ = "legislaciones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    legislation_id = Column(String, unique=True, index=True)  # ID oficial del BOE
+    title = Column(String)
+    rango = Column(String)
+    departamento = Column(String)
+    fecha_publicacion = Column(Date)
+    fecha_ultima_version = Column(Date)
+    estado_consolidacion = Column(String)
+    materias = Column(String)  # CSV de materias
+    ambito = Column(String)
+    texto_completo = Column(String, nullable=True)
+    indice = Column(String, nullable=True)
+    resumen = Column(String, nullable=True)
+    url_html = Column(String)

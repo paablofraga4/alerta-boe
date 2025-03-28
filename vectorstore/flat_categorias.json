@@ -1,0 +1,312 @@
+[
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Accidentes de trabajo",
+    "keywords": "accidentes laborales riesgos trabajo prevención"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Enfermedades profesionales",
+    "keywords": "enfermedades profesionales salud laboral"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Incapacidades laborales",
+    "keywords": "incapacidad baja laboral prestaciones"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Jubilación y pensiones",
+    "keywords": "jubilación pensión retiro seguridad social"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Cotización a la Seguridad Social",
+    "keywords": "cotización cuotas seguridad social"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Regímenes especiales",
+    "keywords": "régimen especial autónomos agrarios artistas"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Mutualidades",
+    "keywords": "mutualidad previsión seguros sociales"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Trabajo autónomo",
+    "keywords": "autónomos freelance RETA cuota autónomo"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Empleo juvenil",
+    "keywords": "empleo joven contratos primer empleo"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Formación profesional",
+    "keywords": "formación profesional técnica empleo FP"
+  },
+  {
+    "grupo": "📂 Ámbito laboral y profesional",
+    "title": "Prevención de riesgos laborales",
+    "keywords": "riesgos laborales PRL seguridad higiene"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Cine y cinematografía",
+    "keywords": "cine películas audiovisual festivales"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Música",
+    "keywords": "música conciertos artistas sonido"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Teatro",
+    "keywords": "teatro dramaturgia escena compañía"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Danza",
+    "keywords": "danza coreografía baile escénico"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Circo y variedades",
+    "keywords": "circo variedades espectáculo clásico"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Televisión",
+    "keywords": "televisión programas medios RTVE"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Radiodifusión",
+    "keywords": "radio radiodifusión emisoras frecuencia"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Literatura y escritores",
+    "keywords": "escritores libros literatura narrativa"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Artistas plásticos",
+    "keywords": "artistas pintura escultura visual"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Patrimonio cultural",
+    "keywords": "patrimonio bienes culturales restauración"
+  },
+  {
+    "grupo": "🎭 Cultura y artes escénicas",
+    "title": "Espectáculos públicos",
+    "keywords": "espectáculos eventos cultura entradas"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Deporte profesional",
+    "keywords": "deporte profesional federado alta competición"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Fútbol",
+    "keywords": "fútbol liga clubes deportistas"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Deporte base",
+    "keywords": "deporte infantil juvenil formación"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Instalaciones deportivas",
+    "keywords": "instalaciones pabellones campos polideportivos"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Actividad física y salud",
+    "keywords": "actividad física ejercicio salud"
+  },
+  {
+    "grupo": "⚽ Deporte y ocio",
+    "title": "Tiempo libre y ocio juvenil",
+    "keywords": "ocio juvenil campamentos tiempo libre"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Comercio interior",
+    "keywords": "comercio interior tiendas negocios"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Comercio exterior",
+    "keywords": "exportaciones importaciones aduanas comercio internacional"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Consumo",
+    "keywords": "consumidor protección derechos consumo"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Comercio electrónico",
+    "keywords": "ecommerce tiendas online ventas digitales"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Representantes de comercio",
+    "keywords": "representantes agentes ventas comisionistas"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Ferias y mercados",
+    "keywords": "ferias mercados eventos expositores"
+  },
+  {
+    "grupo": "🛍️ Comercio y sectores económicos",
+    "title": "Artesanía",
+    "keywords": "artesanía oficios productos tradicionales"
+  },
+  {
+    "grupo": "🚄 Infraestructuras y transporte",
+    "title": "Ferrocarriles",
+    "keywords": "trenes ferrocarril RENFE líneas AVE"
+  },
+  {
+    "grupo": "🚄 Infraestructuras y transporte",
+    "title": "Carreteras",
+    "keywords": "carreteras obras tráfico autopistas"
+  },
+  {
+    "grupo": "🚄 Infraestructuras y transporte",
+    "title": "Transporte urbano e interurbano",
+    "keywords": "transporte autobuses metro tranvía movilidad"
+  },
+  {
+    "grupo": "🚄 Infraestructuras y transporte",
+    "title": "Logística y mercancías",
+    "keywords": "logística transporte mercancías cadena suministro"
+  },
+  {
+    "grupo": "🚄 Infraestructuras y transporte",
+    "title": "Transporte marítimo y aéreo",
+    "keywords": "puertos aviación barcos vuelos aeropuertos"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Seguridad Social",
+    "keywords": "seguridad social prestaciones pensiones afiliación"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Asistencia sanitaria",
+    "keywords": "atención médica sanidad hospitales centros salud"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Salud mental",
+    "keywords": "salud mental psicología bienestar emocional"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Atención primaria",
+    "keywords": "atención primaria médica centros salud"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Salud pública",
+    "keywords": "salud pública campañas vacunación prevención"
+  },
+  {
+    "grupo": "🧑‍⚕️ Salud y asistencia",
+    "title": "Farmacia y medicamentos",
+    "keywords": "medicamentos farmacia recetas sanidad"
+  },
+  {
+    "grupo": "🧑‍🎓 Educación y formación",
+    "title": "Educación infantil, primaria, secundaria",
+    "keywords": "educación colegio instituto enseñanza obligatoria"
+  },
+  {
+    "grupo": "🧑‍🎓 Educación y formación",
+    "title": "Universidades",
+    "keywords": "universidad estudios superiores campus grados"
+  },
+  {
+    "grupo": "🧑‍🎓 Educación y formación",
+    "title": "Becas y ayudas al estudio",
+    "keywords": "becas ayudas estudiantes estudio"
+  },
+  {
+    "grupo": "🧑‍🎓 Educación y formación",
+    "title": "Formación continua y profesional",
+    "keywords": "formación profesional continua reciclaje laboral"
+  },
+  {
+    "grupo": "🧑‍🎓 Educación y formación",
+    "title": "Investigación y ciencia",
+    "keywords": "investigación científica I+D innovación"
+  },
+  {
+    "grupo": "📡 Tecnología y digitalización",
+    "title": "Transformación digital",
+    "keywords": "digitalización administración innovación tecnológica"
+  },
+  {
+    "grupo": "📡 Tecnología y digitalización",
+    "title": "Administración electrónica",
+    "keywords": "trámites online sede electrónica certificado digital"
+  },
+  {
+    "grupo": "📡 Tecnología y digitalización",
+    "title": "Telecomunicaciones",
+    "keywords": "telecomunicaciones redes fibra móvil 5G"
+  },
+  {
+    "grupo": "📡 Tecnología y digitalización",
+    "title": "Inteligencia Artificial",
+    "keywords": "IA inteligencia artificial algoritmos machine learning"
+  },
+  {
+    "grupo": "📡 Tecnología y digitalización",
+    "title": "Ciberseguridad",
+    "keywords": "ciberseguridad protección datos hackers firewall"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Agricultura",
+    "keywords": "agricultura cultivos PAC ayudas campo"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Ganadería",
+    "keywords": "ganadería animales granjas explotaciones"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Desarrollo rural",
+    "keywords": "desarrollo rural despoblación zonas rurales"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Medioambiente",
+    "keywords": "medio ambiente sostenibilidad reciclaje"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Cambio climático",
+    "keywords": "cambio climático emisiones CO2 mitigación"
+  },
+  {
+    "grupo": "🌱 Rural y medioambiente",
+    "title": "Energías renovables",
+    "keywords": "renovables solar eólica energía verde"
+  }
+]

@@ -13,7 +13,7 @@ from app.db.session import SessionLocal
 from app.db.models import Publication, Region, Scope
 from app.services.semantic_search import buscar_similares
 from app.services.intent_parser import detectar_region, detectar_scope, detectar_extra_tag
-
+from app.services.classifier import clasificar_categoria_por_regex
 
 # CONFIGURACIÓN GENERAL
 st.set_page_config(
@@ -22,7 +22,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# INYECCIÓN DE ESTILOS Y ANIMACIONES
+# INYECCIÓN DE ESTILOS Y ANIMACIONES + EFECTO SPARKLE
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -50,9 +50,12 @@ h1.big-title {
     from {opacity: 0; transform: translateY(20px);}
     to {opacity: 1; transform: translateY(0);}
 }
-
+@keyframes highlight {
+    0% { background-color: #dff9fb; }
+    100% { background-color: transparent; }
+}
 .tarjeta {
-    animation: fadeIn 0.6s ease forwards;
+    animation: fadeIn 0.6s ease forwards, highlight 2s ease;
     opacity: 0;
     padding: 1.4rem 1.8rem;
     margin-bottom: 1.5rem;
@@ -66,13 +69,10 @@ h1.big-title {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
-
 .tarjeta h4 {
     color: #2c3e50;
     margin-bottom: 0.5rem;
 }
-
-/* BOTONES */
 div.stButton > button {
     background: linear-gradient(to right, #1abc9c, #16a085);
     color: white;
@@ -86,8 +86,6 @@ div.stButton > button:hover {
     background: linear-gradient(to right, #16a085, #1abc9c);
     transform: scale(1.03);
 }
-
-/* CAMPOS INPUT */
 input, select, textarea {
     transition: box-shadow 0.3s ease, border 0.3s ease;
 }
@@ -95,13 +93,9 @@ input:focus, select:focus, textarea:focus {
     border: 1.5px solid #1abc9c !important;
     box-shadow: 0 0 6px rgba(26, 188, 156, 0.3) !important;
 }
-
-/* RADIO BUTTONS */
 div.row-widget.stRadio > div {
     gap: 1rem;
 }
-
-/* LINKS */
 a {
     text-decoration: none;
     color: #2980b9;
@@ -110,21 +104,48 @@ a:hover {
     color: #1abc9c;
     text-decoration: underline;
 }
-
 hr {
     border-top: 2px solid #ecf0f1;
     margin: 2rem 0;
 }
 </style>
+<canvas id="sparkCanvas" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:999;" width="300" height="100"></canvas>
+<script>
+const canvas = document.getElementById('sparkCanvas');
+const ctx = canvas.getContext('2d');
+let sparks = [];
+function createSpark() {
+    sparks.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 2 + 1,
+        alpha: 1.0
+    });
+}
+function drawSparks() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < sparks.length; i++) {
+        let s = sparks[i];
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = `rgba(26, 188, 156, ${s.alpha})`;
+        ctx.fill();
+        s.alpha -= 0.02;
+    }
+    sparks = sparks.filter(s => s.alpha > 0);
+}
+setInterval(() => {
+    createSpark();
+    drawSparks();
+}, 50);
+</script>
 """, unsafe_allow_html=True)
+
+
 
 # CABECERA
 st.markdown("""
-<div style='
-    text-align: center;
-    padding: 1.2rem 0 0.5rem 0;
-    position: relative;
-'>
+<div style='text-align: center; padding: 1.2rem 0 0.5rem 0; position: relative;'>
     <div style="position: absolute; right: 25px; top: 10px; font-size: 2.2rem; animation: float 3s ease-in-out infinite;">
         📡
     </div>
@@ -132,7 +153,6 @@ st.markdown("""
     <p class='subtitle'>Tu radar inteligente para detectar lo importante en el BOE</p>
     <hr/>
 </div>
-
 <style>
 @keyframes float {
   0% { transform: translateY(0px); }
@@ -141,6 +161,52 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ✅ Carrusel de modos mejorado con efecto visual de "rotación"
+# Sustituye tu bloque anterior de navegación de modo por este completo
+
+# OPCIONES DISPONIBLES
+modo_opciones = [
+    {"label": "🔍 Por fecha", "value": "fecha"},
+    {"label": "🤖 Consultor inteligente", "value": "consultor"},
+    {"label": "🔹 Legislación", "value": "legislacion"}
+]
+
+if "modo_index" not in st.session_state:
+    st.session_state.modo_index = 0
+
+cols_flechas = st.columns([1, 6, 1])
+
+# Flecha izquierda
+with cols_flechas[0]:
+    if st.button("◀️", use_container_width=True):
+        st.session_state.modo_index = (st.session_state.modo_index - 1) % len(modo_opciones)
+
+# Flecha derecha
+with cols_flechas[2]:
+    if st.button("▶️", use_container_width=True):
+        st.session_state.modo_index = (st.session_state.modo_index + 1) % len(modo_opciones)
+
+# Mostramos los 3 modos con efecto "rotación"
+idx = st.session_state.modo_index
+prev = modo_opciones[(idx - 1) % len(modo_opciones)]["label"]
+actual = modo_opciones[idx]["label"]
+siguiente = modo_opciones[(idx + 1) % len(modo_opciones)]["label"]
+
+st.markdown(f"""
+<div style="display: flex; justify-content: center; align-items: center; gap: 20px; padding: 1rem 0;">
+    <div style="opacity: 0.4; font-size: 1rem; transform: scale(0.85); transition: all 0.3s ease;">{prev}</div>
+    <div style="font-size: 1.6rem; font-weight: bold; color: #1abc9c; background-color: #e8fafa; padding: 0.5rem 1.2rem; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.3s ease;">{actual}</div>
+    <div style="opacity: 0.4; font-size: 1rem; transform: scale(0.85); transition: all 0.3s ease;">{siguiente}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# Activar visibilidad por modo
+modo = modo_opciones[st.session_state.modo_index]["value"]
+mostrar_por_fecha = modo == "fecha"
+mostrar_consultor = modo == "consultor"
+mostrar_legislacion = modo == "legislacion"
+
 
 # ESTADO GLOBAL
 if "publicaciones" not in st.session_state:
@@ -156,23 +222,21 @@ CATEGORIAS_VALIDAS = [
     'Seguridad', 'Sentencia', 'Subvención', 'Tecnología'
 ]
 
-# MODO DE USO
-st.markdown("""
-<div style='
-    background-color: #f7fafa;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-    margin-bottom: 1.5rem;
-'>
-""", unsafe_allow_html=True)
 
-modo = st.radio("🧭 ¿Cómo quieres explorar el BOE hoy?", ["🔍 Explorar por fecha", "🤖 Consultor inteligente del BOE"], horizontal=True)
+# COMPONENTES DE TARJETA
 
-st.markdown("</div>", unsafe_allow_html=True)
+def mostrar_tarjeta_legislacion(norm):
+    vigente = '✅' if norm.get("vigente") else '❌'
+    st.markdown(f"""
+    <div class='tarjeta'>
+        <h4>🔖 {html.escape(norm['titulo'])}</h4>
+        <p><b>Fecha publicación:</b> {norm['fecha_publicacion']} | <b>Vigente:</b> {vigente}</p>
+        <p><b>Departamento:</b> {html.escape(norm['departamento'])} | <b>Rango:</b> {html.escape(norm['rango'])}</p>
+        <p><a href="{norm['url_boe']}" target="_blank">🔗 Ver en el BOE</a></p>
+    </div>
+    """, unsafe_allow_html=True)
 
 
-# COMPONENTE DE TARJETA
 def mostrar_tarjeta(pub):
     # El título se escapa, ya que es texto simple.
     title = html.escape(pub.get("title", "[Sin título]"))
@@ -227,7 +291,7 @@ def mostrar_tarjeta(pub):
 
 
 # CONSULTOR INTELIGENTE
-if modo == "🤖 Consultor inteligente del BOE":
+if mostrar_consultor:
     st.subheader("🤖 ¿Qué necesitas encontrar?")
     consulta = st.text_input("Ej: ayudas para autónomos en Galicia")
 
@@ -246,13 +310,23 @@ if modo == "🤖 Consultor inteligente del BOE":
     categoria_clasificada = None
     try:
         # Ejemplo: si tienes una función clasificar_categoria
-        categoria_clasificada = clasificar_categoria(consulta)
+        categoria_clasificada = clasificar_categoria_por_regex(consulta)
     except Exception:
         pass
 
     region_detectada = detectar_region(consulta, regiones_disponibles)
     scope_detectado = detectar_scope(consulta, scopes_disponibles)
     extra_tag_detectado = detectar_extra_tag(consulta)
+
+    if modo == "🤖 Consultor inteligente del BOE" and consulta:
+        st.info(f"""
+        🔎 *Resumen de tu consulta:*
+        
+        • **Región:** {region_detectada or 'No detectada'}
+        • **Alcance:** {scope_detectado or 'No detectado'}
+        • **Etiqueta:** {extra_tag_detectado or 'No detectada'}
+        • **Categoría:** {categoria_seleccionada if categoria_seleccionada != 'Todas' else categoria_clasificada or 'No detectada'}
+        """)
 
     if st.button("🔍 Buscar publicaciones"):
         desde = datetime.today().date() - timedelta(days=60)
@@ -287,8 +361,8 @@ if modo == "🤖 Consultor inteligente del BOE":
                 mostrar_tarjeta(pub)
         db.close()
 
-# CONSULTA POR FECHA
-else:
+# CONSULTA POR FECHA (solo si aplica)
+if mostrar_por_fecha:
     st.subheader("📅 Consulta por fecha")
     fecha_obj = st.date_input("Selecciona una fecha", value=date.today())
     if st.button("🔍 Buscar publicaciones del día"):
@@ -311,6 +385,91 @@ else:
         else:
             st.info("Ya tienes esta fecha cargada ✅")
 
+# CONSULTA A LEGISLACIÓN CONSOLIDADA (con UI refinada)
+if mostrar_legislacion:
+    st.subheader("🔹 Explora la Legislación Consolidada")
+
+    st.markdown("### 🧠 ¿Sobre qué tema necesitas información?")
+    cols_consulta = st.columns([3, 1])
+    consulta = cols_consulta[0].text_input("Tema principal", placeholder="Ej: ayudas autónomos, becas, seguridad social...")
+
+    texto_final = ""
+    sugerencias = []
+
+    if consulta:
+        try:
+            r = requests.get("http://localhost:8000/api/suggest", params={"q": consulta})
+            if r.status_code == 200 and "sugerencias" in r.json():
+                sugerencias = r.json()["sugerencias"]
+                if sugerencias:
+                    st.markdown("#### 🔍 Sugerencias relacionadas:")
+                    for s in sugerencias:
+                        st.markdown(
+                            f"<span style='background-color:#ecf0f1;padding:6px 12px;border-radius:20px;margin:4px;display:inline-block;font-size:0.9rem;'>✅ {s['title']}</span>",
+                            unsafe_allow_html=True
+                        )
+                        if st.button(f"Usar: {s['title']}"):
+                            st.session_state.categoria_sugerida = s["title"]
+        except Exception as e:
+            st.warning(f"⚠️ Error al obtener sugerencias: {e}")
+
+    texto_final = st.session_state.get("categoria_sugerida", consulta)
+
+    # Visual friendly summary box
+    if texto_final:
+        st.markdown(f"""
+        <div style="background-color:#dff9fb; border-left:5px solid #1abc9c; padding:1rem; border-radius:10px; margin:1rem 0;">
+            <b>🧾 Búsqueda generada:</b><br>
+            Tema: <code>{texto_final}</code>
+        </div>
+        """, unsafe_allow_html=True)
+
+    comunidad_seleccionada = st.selectbox("🌍 Comunidad Autónoma", ["Toda España", "Andalucía", "Aragón", "Asturias", "Baleares", "Canarias", "Cantabria", "Castilla-La Mancha", "Castilla y León", "Cataluña", "Ceuta", "Comunidad Valenciana", "Extremadura", "Galicia", "La Rioja", "Madrid", "Melilla", "Murcia", "Navarra", "País Vasco"])
+    extra = st.text_input("🧩 Palabra clave adicional (opcional)")
+
+    cols_fecha = st.columns(2)
+    desde = cols_fecha[0].date_input("📅 Desde", value=None, min_value=date(1980, 1, 1), max_value=date.today())
+    hasta = cols_fecha[1].date_input("📅 Hasta", value=None, min_value=date(1980, 1, 1), max_value=date.today())
+
+    if st.button("🔍 Buscar legislación"):
+        import json
+        params = {}
+        texto_base = texto_final
+
+        if comunidad_seleccionada != "Toda España":
+            texto_base += f' AND "{comunidad_seleccionada}"'
+        if extra:
+            texto_base += f" AND {extra}"
+        params["texto"] = texto_base
+
+        if desde:
+            params["from"] = desde.strftime("%Y%m%d")
+        if hasta:
+            params["to"] = hasta.strftime("%Y%m%d")
+        params["limit"] = 30
+
+        with st.spinner("🔍 Consultando la API del BOE..."):
+            try:
+                response = requests.get("http://localhost:8000/legislacion/legislacion/listado", params=params)
+                if response.status_code == 200:
+                    resultados = response.json()
+                    if resultados:
+                        st.success(f"✅ {len(resultados)} normas encontradas")
+                        for r in resultados:
+                            detalle = requests.get(f"http://localhost:8000/legislacion/legislacion/detalle/{r['id']}")
+                            if detalle.status_code == 200:
+                                resumen = detalle.json()
+                                mostrar_tarjeta_legislacion(resumen)
+                            else:
+                                mostrar_tarjeta_legislacion(r)
+                    else:
+                        st.info("No se encontraron normas con esos filtros.")
+                else:
+                    st.error("Error al consultar el backend.")
+            except Exception as e:
+                st.error(f"Error de conexión: {e}")
+
+
 # DASHBOARD
 if st.session_state.publicaciones:
     publicaciones = st.session_state.publicaciones
@@ -318,7 +477,6 @@ if st.session_state.publicaciones:
     for pub in publicaciones:
         mostrar_tarjeta(pub)
 
-# 🎁 REGALITO VISUAL – Mensaje final animado
 st.markdown(f"""
 <hr>
 <div style='text-align:center; font-size:0.95rem; color:#7f8c8d; padding: 2rem 0; animation: fadeIn 1s ease forwards;'>
@@ -326,3 +484,4 @@ st.markdown(f"""
     <p style="font-size:1.1rem; margin-top:1rem;">✨ Que hoy encuentres justo la publicación que estabas esperando ✨</p>
 </div>
 """, unsafe_allow_html=True)
+

@@ -1,0 +1,83 @@
+{
+    "📂 Ámbito laboral y profesional": [
+      { "title": "Accidentes de trabajo", "keywords": "accidentes laborales riesgos trabajo prevención" },
+      { "title": "Enfermedades profesionales", "keywords": "enfermedades profesionales salud laboral" },
+      { "title": "Incapacidades laborales", "keywords": "incapacidad baja laboral prestaciones" },
+      { "title": "Jubilación y pensiones", "keywords": "jubilación pensión retiro seguridad social" },
+      { "title": "Cotización a la Seguridad Social", "keywords": "cotización cuotas seguridad social" },
+      { "title": "Regímenes especiales", "keywords": "régimen especial autónomos agrarios artistas" },
+      { "title": "Mutualidades", "keywords": "mutualidad previsión seguros sociales" },
+      { "title": "Trabajo autónomo", "keywords": "autónomos freelance RETA cuota autónomo" },
+      { "title": "Empleo juvenil", "keywords": "empleo joven contratos primer empleo" },
+      { "title": "Formación profesional", "keywords": "formación profesional técnica empleo FP" },
+      { "title": "Prevención de riesgos laborales", "keywords": "riesgos laborales PRL seguridad higiene" }
+    ],
+    "🎭 Cultura y artes escénicas": [
+      { "title": "Cine y cinematografía", "keywords": "cine películas audiovisual festivales" },
+      { "title": "Música", "keywords": "música conciertos artistas sonido" },
+      { "title": "Teatro", "keywords": "teatro dramaturgia escena compañía" },
+      { "title": "Danza", "keywords": "danza coreografía baile escénico" },
+      { "title": "Circo y variedades", "keywords": "circo variedades espectáculo clásico" },
+      { "title": "Televisión", "keywords": "televisión programas medios RTVE" },
+      { "title": "Radiodifusión", "keywords": "radio radiodifusión emisoras frecuencia" },
+      { "title": "Literatura y escritores", "keywords": "escritores libros literatura narrativa" },
+      { "title": "Artistas plásticos", "keywords": "artistas pintura escultura visual" },
+      { "title": "Patrimonio cultural", "keywords": "patrimonio bienes culturales restauración" },
+      { "title": "Espectáculos públicos", "keywords": "espectáculos eventos cultura entradas" }
+    ],
+    "⚽ Deporte y ocio": [
+      { "title": "Deporte profesional", "keywords": "deporte profesional federado alta competición" },
+      { "title": "Fútbol", "keywords": "fútbol liga clubes deportistas" },
+      { "title": "Deporte base", "keywords": "deporte infantil juvenil formación" },
+      { "title": "Instalaciones deportivas", "keywords": "instalaciones pabellones campos polideportivos" },
+      { "title": "Actividad física y salud", "keywords": "actividad física ejercicio salud" },
+      { "title": "Tiempo libre y ocio juvenil", "keywords": "ocio juvenil campamentos tiempo libre" }
+    ],
+    "🛍️ Comercio y sectores económicos": [
+      { "title": "Comercio interior", "keywords": "comercio interior tiendas negocios" },
+      { "title": "Comercio exterior", "keywords": "exportaciones importaciones aduanas comercio internacional" },
+      { "title": "Consumo", "keywords": "consumidor protección derechos consumo" },
+      { "title": "Comercio electrónico", "keywords": "ecommerce tiendas online ventas digitales" },
+      { "title": "Representantes de comercio", "keywords": "representantes agentes ventas comisionistas" },
+      { "title": "Ferias y mercados", "keywords": "ferias mercados eventos expositores" },
+      { "title": "Artesanía", "keywords": "artesanía oficios productos tradicionales" }
+    ],
+    "🚄 Infraestructuras y transporte": [
+      { "title": "Ferrocarriles", "keywords": "trenes ferrocarril RENFE líneas AVE" },
+      { "title": "Carreteras", "keywords": "carreteras obras tráfico autopistas" },
+      { "title": "Transporte urbano e interurbano", "keywords": "transporte autobuses metro tranvía movilidad" },
+      { "title": "Logística y mercancías", "keywords": "logística transporte mercancías cadena suministro" },
+      { "title": "Transporte marítimo y aéreo", "keywords": "puertos aviación barcos vuelos aeropuertos" }
+    ],
+    "🧑‍⚕️ Salud y asistencia": [
+      { "title": "Seguridad Social", "keywords": "seguridad social prestaciones pensiones afiliación" },
+      { "title": "Asistencia sanitaria", "keywords": "atención médica sanidad hospitales centros salud" },
+      { "title": "Salud mental", "keywords": "salud mental psicología bienestar emocional" },
+      { "title": "Atención primaria", "keywords": "atención primaria médica centros salud" },
+      { "title": "Salud pública", "keywords": "salud pública campañas vacunación prevención" },
+      { "title": "Farmacia y medicamentos", "keywords": "medicamentos farmacia recetas sanidad" }
+    ],
+    "🧑‍🎓 Educación y formación": [
+      { "title": "Educación infantil, primaria, secundaria", "keywords": "educación colegio instituto enseñanza obligatoria" },
+      { "title": "Universidades", "keywords": "universidad estudios superiores campus grados" },
+      { "title": "Becas y ayudas al estudio", "keywords": "becas ayudas estudiantes estudio" },
+      { "title": "Formación continua y profesional", "keywords": "formación profesional continua reciclaje laboral" },
+      { "title": "Investigación y ciencia", "keywords": "investigación científica I+D innovación" }
+    ],
+    "📡 Tecnología y digitalización": [
+      { "title": "Transformación digital", "keywords": "digitalización administración innovación tecnológica" },
+      { "title": "Administración electrónica", "keywords": "trámites online sede electrónica certificado digital" },
+      { "title": "Telecomunicaciones", "keywords": "telecomunicaciones redes fibra móvil 5G" },
+      { "title": "Inteligencia Artificial", "keywords": "IA inteligencia artificial algoritmos machine learning" },
+      { "title": "Ciberseguridad", "keywords": "ciberseguridad protección datos hackers firewall" }
+    ],
+    "🌱 Rural y medioambiente": [
+      { "title": "Agricultura", "keywords": "agricultura cultivos PAC ayudas campo" },
+      { "title": "Ganadería", "keywords": "ganadería animales granjas explotaciones" },
+      { "title": "Desarrollo rural", "keywords": "desarrollo rural despoblación zonas rurales" },
+      { "title": "Medioambiente", "keywords": "medio ambiente sostenibilidad reciclaje" },
+      { "title": "Cambio climático", "keywords": "cambio climático emisiones CO2 mitigación" },
+      { "title": "Energías renovables", "keywords": "renovables solar eólica energía verde" }
+    ]
+  }
+  
