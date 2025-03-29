@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import ARRAY
 from app.db.session import Base
 
 # 🧩 Tabla intermedia
@@ -32,8 +33,11 @@ class Publication(Base):
     date = Column(Date, index=True)
     title = Column(String)
     body = Column(String)
-    category = Column(String)
-    extra_tag = Column(String, nullable=True)  # ✅ NUEVO CAMPO
+
+    # ✅ CAMBIO: ahora es una lista de categorías
+    category = Column(ARRAY(String))
+
+    extra_tag = Column(String, nullable=True)
 
     scope_id = Column(Integer, ForeignKey("scopes.id"))
     scope = relationship("Scope", back_populates="publications")
@@ -47,6 +51,9 @@ class Publication(Base):
     url_html = Column(String)
     url_pdf = Column(String)
     pages = Column(Integer)
+
+    # 🧠 OPCIONAL: embedding vectorial para búsqueda semántica
+    # embedding = Column(Vector(384))
 
 # 🆕 Legislación consolidada
 class Legislacion(Base):

@@ -10,6 +10,11 @@ def buscar_similares(query_text, publicaciones, top_k=5):
     if not publicaciones or not query_text:
         return []
 
+    # Ajustar top_k al número de publicaciones disponibles
+    top_k = min(top_k, len(publicaciones))
+    if top_k == 0:
+        return []
+
     # Embedding de la búsqueda
     query_embedding = model.encode(query_text, convert_to_tensor=True)
 
@@ -22,5 +27,5 @@ def buscar_similares(query_text, publicaciones, top_k=5):
     top_indices = similitudes.topk(top_k).indices.tolist()
 
     # Devolver publicaciones ordenadas por similitud
-    resultados = [publicaciones[i] for i in top_indices]
-    return resultados
+    return [publicaciones[i] for i in top_indices]
+

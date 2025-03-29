@@ -24,7 +24,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "date": str(pub.date),
             "title": pub.title,
             "body": pub.body,
-            "category": pub.category,
+            "category": list(pub.category) if isinstance(pub.category, (list, tuple)) else [str(pub.category)],
             "extra_tag": pub.extra_tag,  # ✅ NUEVO CAMPO INCLUIDO
             "scope": pub.scope.name if pub.scope else None,
             "departamento": pub.departamento,

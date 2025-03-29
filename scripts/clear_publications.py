@@ -9,6 +9,7 @@ def borrar_publicaciones_por_fecha(fecha: str):
         fecha_obj = datetime.strptime(fecha, "%Y%m%d").date()
         publicaciones = session.query(Publication).filter(Publication.date == fecha_obj).all()
         for pub in publicaciones:
+            pub.regions.clear()  # 🔑 Eliminar enlaces en tabla intermedia
             session.delete(pub)
         session.commit()
         print(f"🗑️ Borradas {len(publicaciones)} publicaciones de la fecha {fecha}.")
@@ -21,15 +22,17 @@ def borrar_publicaciones_por_fecha(fecha: str):
 def borrar_todas_publicaciones():
     session = SessionLocal()
     try:
-        total = session.query(Publication).delete()
+        publicaciones = session.query(Publication).all()
+        for pub in publicaciones:
+            pub.regions.clear()  # 🔑 Eliminar enlaces en tabla intermedia
+            session.delete(pub)
         session.commit()
-        print(f"🧨 Borradas TODAS las publicaciones ({total} registros).")
+        print(f"🧨 Borradas TODAS las publicaciones ({len(publicaciones)} registros).")
     except Exception as e:
         print(f"❌ Error al borrar todas las publicaciones: {e}")
         session.rollback()
     finally:
         session.close()
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
