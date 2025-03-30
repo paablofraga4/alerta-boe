@@ -363,61 +363,82 @@ def mostrar_tarjeta_legislacion(norm):
     """, unsafe_allow_html=True)
 
 def mostrar_tarjeta(pub):
-    def formato_categoria(categoria):
-        if isinstance(categoria, list):
-            return ", ".join([c for c in categoria if c and c.strip()])
-        elif categoria:
-            return str(categoria)
-        else:
-            return "N/D"
+    pub_id = pub.get("id")
 
-    title = html.escape(pub.get("title", "[Sin título]"))
-    depto = html.escape(pub.get("departamento") or "N/D")
-    seccion = html.escape(pub.get("seccion") or "N/D")
-    epigrafe = html.escape(pub.get("epigrafe") or "")
-    extra_tag = html.escape(pub.get("extra_tag", "")) if pub.get("extra_tag") else "Sin Etiqueta Extra"
-    categoria_str = html.escape(formato_categoria(pub.get("category")))
+    if f"detalle_abierto_{pub_id}" not in st.session_state:
+        st.session_state[f"detalle_abierto_{pub_id}"] = False
 
-    # 🧠 USAMOS RESUMEN REAL si existe
-    resumen_real = pub.get("resumen", "")
-    resumen = html.escape(resumen_real.strip()) if resumen_real else "Sin resumen disponible"
+    # -------- CARD COMPACTA --------
+    if not st.session_state[f"detalle_abierto_{pub_id}"]:
+        resumen_tiktok = pub.get("resumen_tiktok", "🌀 No hay resumen breve aún.")
 
-    html_tarjeta = f"""
-    <div class='tarjeta'>
-        <h4>📄 {title}</h4>
-        <p style='margin: 0.3rem 0;'>
-            🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
-            🏛️ <b>Dpto:</b> {depto}
-        </p>
-        <p style='margin: 0.3rem 0;'>
-            🏷️ <b>Categoría:</b> {categoria_str}
-        </p>
-    """
+        st.markdown(f"""
+        <div class='tarjeta'>
+            <h4>📄 {html.escape(pub.get('title', '[Sin título]'))}</h4>
+            <p style='margin: 0.3rem 0;'>
+                🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
+                🏛️ <b>Dpto:</b> {html.escape(pub.get("departamento") or "N/D")}
+            </p>
+            <p style='margin: 0.3rem 0;'>
+                🏷️ <b>Categoría:</b> {html.escape(formato_categoria(pub.get("category")))}
+            </p>
+            <p style='margin: 0.3rem 0;'>🔖 <b>Etiqueta:</b> {html.escape(pub.get("extra_tag") or "Sin etiqueta extra")}</p>
+            <p style='margin-top: 1rem;'>📌 <b>Resumen breve:</b><br>{resumen_tiktok}</p>
+            <p style='margin-top: 1rem; font-weight:500;'>
+                <a href="{pub['url_html']}" target="_blank">🔗 Ver en BOE</a>
+                {' · ' if pub.get('url_pdf') else ''}
+                <a href="{pub['url_pdf']}" target="_blank">⬇️ PDF</a>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    if extra_tag:
-        html_tarjeta += f"<p style='margin: 0.3rem 0;'>🔖 <b>Etiqueta:</b> {extra_tag}</p>"
+        if st.button("🧠 Ver detalle / Chatear", key=f"btn_detalle_{pub_id}"):
+            st.session_state[f"detalle_abierto_{pub_id}"] = True
 
-    seccion_texto = seccion + (f" / {epigrafe}" if epigrafe and epigrafe != "N/D" else "")
-    html_tarjeta += f"""
-        <p style='margin: 0.3rem 0;'>
-            📂 <b>Sección:</b> {seccion_texto}
-        </p>
-        <p style='margin-top: 1rem; color:#333;'>
-            📝 <b>Resumen:</b><br>{resumen}
-        </p>
-        <p style='margin-top: 1rem; font-weight:500;'>
-    """
+    # -------- VISTA EXPANDIDA --------
+    else:
+        st.markdown(f"""
+        <div class='tarjeta' style="border-left: 6px solid #f39c12;">
+            <h4>🗂️ {html.escape(pub.get('title', '[Sin título]'))}</h4>
+            <p><b>Resumen completo:</b><br>{pub.get("resumen", "Sin resumen completo")}</p>
+            <p><b>Texto legal:</b></p>
+            <div style="max-height: 200px; overflow-y: auto; background-color: #f6f6f6; padding: 0.8rem; border-radius: 12px;">
+                <code style="white-space: pre-wrap;">{html.escape(pub.get('body', ''))}</code>
+            </div>
+        """, unsafe_allow_html=True)
 
-    enlaces = []
-    if pub.get("url_html"):
-        enlaces.append(f"<a href='{pub['url_html']}' target='_blank'>🔗 Ver en el BOE</a>")
-    if pub.get("url_pdf"):
-        enlaces.append(f"<a href='{pub['url_pdf']}' target='_blank'>⬇️ PDF</a>")
+        # 🧠 Chat contextual
+        if f"chat_historial_{pub_id}" not in st.session_state:
+            st.session_state[f"chat_historial_{pub_id}"] = []
 
-    html_tarjeta += " · ".join(enlaces)
-    html_tarjeta += "</p></div>"
+        pregunta = st.text_input("Haz una pregunta sobre esta publicación:", key=f"chat_input_{pub_id}")
+        if pregunta:
+            with st.spinner("Pensando..."):
+                try:
+                    r = requests.post(
+                        "http://localhost:8000/api/chat-documento",
+                        json={
+                            "texto": pub.get("body", ""),
+                            "historial": st.session_state[f"chat_historial_{pub_id}"] + [{"role": "user", "content": pregunta}]
+                        },
+                        timeout=45
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        st.session_state[f"chat_historial_{pub_id}"].append({"role": "user", "content": pregunta})
+                        st.session_state[f"chat_historial_{pub_id}"].append({"role": "assistant", "content": data.get("respuesta", "(sin respuesta)")})
+                    else:
+                        st.warning("⚠️ No se pudo obtener respuesta del asistente.")
+                except Exception as e:
+                    st.warning(f"⚠️ Error: {e}")
 
-    st.markdown(f"<div style='margin-top: 5rem;'>{html_tarjeta}</div>", unsafe_allow_html=True)
+        for msg in st.session_state[f"chat_historial_{pub_id}"][-6:]:
+            rol = "🧑‍💼 Tú:" if msg["role"] == "user" else "🤖 Asistente:"
+            st.markdown(f"**{rol}** {msg['content']}")
+
+        if st.button("❌ Cerrar vista", key=f"cerrar_detalle_{pub_id}"):
+            st.session_state[f"detalle_abierto_{pub_id}"] = False
+
 
 
 
@@ -551,10 +572,6 @@ if mostrar_consultor:
         st.markdown(f"<div style='text-align:center; margin-top:1rem;'>Página {pagina + 1} de {total_paginas}</div>", unsafe_allow_html=True)
 
     db.close()
-
-
-
-
 
 
 
