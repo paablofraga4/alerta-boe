@@ -25,7 +25,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "title": pub.title,
             "body": pub.body,
             "category": list(pub.category) if isinstance(pub.category, (list, tuple)) else [str(pub.category)],
-            "extra_tag": pub.extra_tag,  # ✅ NUEVO CAMPO INCLUIDO
+            "extra_tag": pub.extra_tag,
             "scope": pub.scope.name if pub.scope else None,
             "departamento": pub.departamento,
             "seccion": pub.seccion,
@@ -33,6 +33,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "url_html": pub.url_html,
             "url_pdf": pub.url_pdf,
             "pages": pub.pages,
+            "resumen": pub.resumen,  # 👈💥 Aquí lo que faltaba
         })
 
     return JSONResponse(content=publicaciones_serializadas)

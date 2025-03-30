@@ -1,13 +1,16 @@
 import re
 import requests
 from datetime import datetime
+from bs4 import BeautifulSoup
+import time
 
 from app.db.session import SessionLocal
 from app.db.models import Publication, Region, Scope
 
 from app.services.classifier import extra_tag_por_contexto
 from app.services.categoria_engine import clasificar_publicacion
-
+from app.services.summarizer import extraer_texto_desde_html
+from app.services.summarizer_groq import resumir_texto
 
 
 # 🔍 Regex por comunidad autónoma
@@ -33,12 +36,12 @@ REGION_REGEX = {
     "Melilla": r"\bmelilla\b"
 }
 
-# 🔎 Scope: UE / Nacional / Autonómico
 SCOPE_RULES = [
     (r"\b(unión europea|europeo|ue)\b", "Europeo"),
     (r"\b(estado|gobierno de españa|bolet[ií]n oficial del estado)\b", "Nacional"),
     (r"|".join(pat for pat in REGION_REGEX.values()), "Autonómico"),
 ]
+
 
 def detectar_regiones(texto: str, session):
     texto = texto.lower()
@@ -49,6 +52,7 @@ def detectar_regiones(texto: str, session):
             if region_obj and region_obj not in regiones_detectadas:
                 regiones_detectadas.append(region_obj)
     return regiones_detectadas
+
 
 def get_or_create_scope(texto: str, session) -> int:
     texto = texto.lower()
@@ -67,13 +71,14 @@ def get_or_create_scope(texto: str, session) -> int:
         session.commit()
     return default_scope.id
 
+
 def fetch_boe_json(fecha: str):
     url = f"https://boe.es/datosabiertos/api/boe/sumario/{fecha}"
     headers = {"Accept": "application/json"}
     response = requests.get(url, headers=headers)
 
     if response.status_code == 404:
-        print(f"❌ No hay BOE publicado para la fecha {fecha} (¿domingo o festivo?)")
+        print(f"❌ No hay BOE publicado para la fecha {fecha}")
         return
     elif response.status_code != 200:
         print(f"❌ Error {response.status_code} al consultar el BOE")
@@ -94,7 +99,6 @@ def fetch_boe_json(fecha: str):
             codigo_seccion = seccion.get("codigo") or "N/D"
             departamentos = seccion.get("departamento", [])
 
-            # Asegurar que es lista
             if isinstance(departamentos, dict):
                 departamentos = [departamentos]
             elif isinstance(departamentos, str):
@@ -103,7 +107,6 @@ def fetch_boe_json(fecha: str):
             for departamento in departamentos:
                 nombre_dep = departamento.get("nombre") or "N/D"
 
-                # 🧠 CASO A: estructura con epigrafes
                 if "epigrafe" in departamento:
                     epigrafes = departamento.get("epigrafe", [])
                     if isinstance(epigrafes, dict):
@@ -118,7 +121,6 @@ def fetch_boe_json(fecha: str):
                         for item in items:
                             publicaciones += procesar_item(item, fecha, session, nombre_seccion, codigo_seccion, nombre_dep, nombre_epigrafe)
 
-                # 🧠 CASO B: estructura sin epigrafes
                 elif "item" in departamento:
                     items = departamento.get("item", [])
                     if isinstance(items, dict):
@@ -130,6 +132,7 @@ def fetch_boe_json(fecha: str):
     session.commit()
     session.close()
     print(f"✅ {publicaciones} publicaciones guardadas.")
+
 
 def procesar_item(item, fecha, session, seccion, seccion_codigo, departamento, epigrafe):
     titulo = item.get("titulo", "[Sin título]")
@@ -150,27 +153,32 @@ def procesar_item(item, fecha, session, seccion, seccion_codigo, departamento, e
     if session.query(Publication).filter_by(boe_id=boe_id).first():
         return 0
 
-    # ✅ TEXTO COMPLETO para clasificador
     texto_completo = f"{seccion} {departamento} {epigrafe or ''} {titulo}"
-
-    resultado = clasificar_publicacion(texto_completo)
-
-    if isinstance(resultado, list):
-        categorias = resultado
-    elif isinstance(resultado, str):
-        categorias = [resultado]
-    else:
-        categorias = []
-
-
+    categorias = clasificar_publicacion(texto_completo) or []
     regiones = detectar_regiones(texto_completo, session)
     scope_id = get_or_create_scope(texto_completo, session)
+
+    texto_html = extraer_texto_desde_html(url_html)
+    resumen = ""
+
+    if texto_html:
+        print(f"📝 Resumiendo publicación: {titulo[:80]}...")
+        for intento in range(3):
+            resumen = resumir_texto(texto_html)
+            if resumen:
+                break
+            print(f"⏳ Intento {intento + 1} fallido. Esperando para reintentar...")
+            time.sleep(4 + intento * 3)  # Backoff: 4s, 7s, 10s
+        if not resumen:
+            print(f"⚠️ No se pudo generar resumen para: {titulo[:80]}")
+        else:
+            time.sleep(1.2)  # Pausa tras éxito
 
     pub = Publication(
         date=datetime.strptime(fecha, "%Y%m%d").date(),
         title=titulo,
         body=titulo,
-        category=categorias,  # 🔁 AHORA ES UNA LISTA
+        category=categorias if isinstance(categorias, list) else [categorias],
         extra_tag=extra_tag,
         scope_id=scope_id,
         boe_id=boe_id,
@@ -180,10 +188,10 @@ def procesar_item(item, fecha, session, seccion, seccion_codigo, departamento, e
         url_html=url_html,
         url_pdf=url_pdf,
         pages=pages,
+        resumen=resumen,
     )
 
     session.add(pub)
     session.flush()
     pub.regions = regiones
     return 1
-

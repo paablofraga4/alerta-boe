@@ -52,8 +52,12 @@ class Publication(Base):
     url_pdf = Column(String)
     pages = Column(Integer)
 
+    # 🆕 NUEVO CAMPO: resumen generado automáticamente
+    resumen = Column(String, nullable=True)
+
     # 🧠 OPCIONAL: embedding vectorial para búsqueda semántica
     # embedding = Column(Vector(384))
+
 
 # 🆕 Legislación consolidada
 class Legislacion(Base):

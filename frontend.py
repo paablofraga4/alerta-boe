@@ -1,3 +1,4 @@
+# ⚙️ INICIO DE LA APP
 import streamlit as st
 import subprocess
 import requests
@@ -9,6 +10,9 @@ import altair as alt
 import textwrap
 import html  # para escapar strings peligrosos
 from sqlalchemy import func
+import matplotlib.pyplot as plt
+from io import BytesIO
+
 
 from app.db.session import SessionLocal
 from app.db.models import Publication, Region, Scope
@@ -24,58 +28,78 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# INYECCIÓN DE ESTILOS Y ANIMACIONES + EFECTO SPARKLE
+# 🌙 TOGGLE DE MODO OSCURO GLOBAL (ALMACENADO)
+if "modo_oscuro" not in st.session_state:
+    st.session_state.modo_oscuro = False
+
+modo_oscuro = st.checkbox("🌙 Modo Oscuro", value=st.session_state.modo_oscuro)
+st.session_state.modo_oscuro = modo_oscuro
+
+# INSERTAR PLACEHOLDER PARA ANIMACIÓN DE CARGA
 st.markdown("""
+<div id="loader-placeholder"></div>
+""", unsafe_allow_html=True)
+
+# 💅 ESTILOS + FUNCIONALIDAD JAVASCRIPT
+st.markdown(f"""
 <style>
-html, body, [class*="css"] {
+html, body, [class*="css"] {{
     font-family: 'Segoe UI', sans-serif;
     scroll-behavior: smooth;
-}
+    background-color: {'#121212' if modo_oscuro else '#ffffff'};
+    color: {'#ecf0f1' if modo_oscuro else '#2c3e50'};
+}}
 
-/* TITULARES */
-h1.big-title {
+h1.big-title {{
     font-size: 3.5rem;
     font-weight: 900;
     background: linear-gradient(90deg, #1abc9c, #3498db);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
-}
-.subtitle {
+}}
+.subtitle {{
     font-size: 1.3rem;
-    color: #7f8c8d;
+    color: {'#bdc3c7' if modo_oscuro else '#7f8c8d'};
     margin-bottom: 2rem;
-}
+}}
 
-/* ANIMACIONES */
-@keyframes fadeIn {
-    from {opacity: 0; transform: translateY(20px);}
-    to {opacity: 1; transform: translateY(0);}
-}
-@keyframes highlight {
-    0% { background-color: #dff9fb; }
-    100% { background-color: transparent; }
-}
-.tarjeta {
+@keyframes fadeIn {{
+    from {{opacity: 0; transform: translateY(20px);}}
+    to {{opacity: 1; transform: translateY(0);}}
+}}
+
+@keyframes highlight {{
+    0% {{ background-color: #dff9fb; }}
+    100% {{ background-color: transparent; }}
+}}
+
+@keyframes float {{
+  0% {{ transform: translateY(0px); }}
+  50% {{ transform: translateY(-6px); }}
+  100% {{ transform: translateY(0px); }}
+}}
+
+.tarjeta {{
     animation: fadeIn 0.6s ease forwards, highlight 2s ease;
     opacity: 0;
     padding: 1.4rem 1.8rem;
     margin-bottom: 1.5rem;
     border-radius: 18px;
-    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    background: {'#2c3e50' if modo_oscuro else 'linear-gradient(135deg, #ffffff, #f8f9fa)'};
     border-left: 5px solid #1abc9c80;
     box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.tarjeta:hover {
+}}
+.tarjeta:hover {{
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
-.tarjeta h4 {
-    color: #2c3e50;
+}}
+.tarjeta h4 {{
+    color: {'#ecf0f1' if modo_oscuro else '#2c3e50'};
     margin-bottom: 0.5rem;
-}
-div.stButton > button {
+}}
+div.stButton > button {{
     background: linear-gradient(to right, #1abc9c, #16a085);
     color: white;
     border: none;
@@ -83,65 +107,136 @@ div.stButton > button {
     padding: 0.6rem 1.2rem;
     font-weight: 600;
     transition: background 0.3s ease, transform 0.2s ease;
-}
-div.stButton > button:hover {
+}}
+div.stButton > button:hover {{
     background: linear-gradient(to right, #16a085, #1abc9c);
     transform: scale(1.03);
-}
-input, select, textarea {
+}}
+input, select, textarea {{
     transition: box-shadow 0.3s ease, border 0.3s ease;
-}
-input:focus, select:focus, textarea:focus {
+}}
+input:focus, select:focus, textarea:focus {{
     border: 1.5px solid #1abc9c !important;
     box-shadow: 0 0 6px rgba(26, 188, 156, 0.3) !important;
-}
-div.row-widget.stRadio > div {
+}}
+div.row-widget.stRadio > div {{
     gap: 1rem;
-}
-a {
+}}
+a {{
     text-decoration: none;
     color: #2980b9;
-}
-a:hover {
+}}
+a:hover {{
     color: #1abc9c;
     text-decoration: underline;
-}
-hr {
+}}
+hr {{
     border-top: 2px solid #ecf0f1;
     margin: 2rem 0;
-}
+}}
+
+.fab {{
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #1abc9c;
+    color: white;
+    border-radius: 50%;
+    padding: 16px;
+    font-size: 1.6rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 9999;
+}}
+.fab:hover {{
+    transform: scale(1.1);
+}}
 </style>
-<canvas id="sparkCanvas" style="position:absolute;top:60px;left:50%;transform:translateX(-50%);pointer-events:none;z-index:999;" width="300" height="100"></canvas>
 <script>
-const canvas = document.getElementById('sparkCanvas');
-const ctx = canvas.getContext('2d');
-let sparks = [];
-function createSpark() {
-    sparks.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        radius: Math.random() * 2 + 1,
-        alpha: 1.0
-    });
-}
-function drawSparks() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (let i = 0; i < sparks.length; i++) {
-        let s = sparks[i];
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = `rgba(26, 188, 156, ${s.alpha})`;
-        ctx.fill();
-        s.alpha -= 0.02;
-    }
-    sparks = sparks.filter(s => s.alpha > 0);
-}
-setInterval(() => {
-    createSpark();
-    drawSparks();
-}, 50);
+document.addEventListener("DOMContentLoaded", function() {{
+    const fab = document.querySelector('.fab');
+    if (fab) {{
+        fab.addEventListener('click', () => {{
+            window.scrollTo({{ top: 0, behavior: 'smooth' }});
+        }});
+    }}
+}});
+</script>
+<div class="fab" title="Volver arriba">⬆️</div>
+""", unsafe_allow_html=True)
+
+# ✨ EFECTO DE INTRODUCCIÓN TIPO "ESCRIBIENDO"
+st.markdown("""
+<h1 style='text-align: center; font-size: 2rem;'>
+  <span id="typewriter"></span>
+</h1>
+<script>
+let txt = "Bienvenido a AlertaBOE, tu radar inteligente del BOE 🛰️";
+let i = 0;
+function typeWriter() {{
+  if (i < txt.length) {{
+    document.getElementById("typewriter").innerHTML += txt.charAt(i);
+    i++;
+    setTimeout(typeWriter, 40);
+  }}
+}}
+typeWriter();
 </script>
 """, unsafe_allow_html=True)
+
+# 💡 FUNCIÓN PARA MOSTRAR LOADER FAKE (SKELETON)
+def mostrar_skeletons(cantidad=5):
+    for _ in range(cantidad):
+        st.markdown('<div class="skeleton-card"></div>', unsafe_allow_html=True)
+
+# 💡 FUNCIÓN PARA MOSTRAR ESTADO VACÍO
+empty_svg = "https://lottie.host/9b44bb6e-6016-41ab-8058-8426b772d1ee/mr7PKbQYdf.json"
+def mostrar_estado_vacio():
+    st.markdown("""
+    <div style='text-align:center; margin:2rem 0;'>
+        <lottie-player src='""" + empty_svg + """' background='transparent' speed='1' style='width: 300px; height: 300px; margin:auto;' loop autoplay></lottie-player>
+        <h4 style='color: #7f8c8d;'>Ups... No encontramos publicaciones con esos criterios 😕</h4>
+    </div>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+    """, unsafe_allow_html=True)
+
+# 💡 FUNCIÓN PARA MOSTRAR DASHBOARD CATEGORÍAS
+def mostrar_dashboard_categorias(publicaciones):
+    categorias = []
+    for pub in publicaciones:
+        if isinstance(pub.get("category"), list):
+            categorias.extend(pub.get("category"))
+        elif pub.get("category"):
+            categorias.append(pub.get("category"))
+    if not categorias:
+        return ""
+
+    from collections import Counter
+    import matplotlib.pyplot as plt
+    import base64
+
+    counter = Counter(categorias)
+    fig, ax = plt.subplots(figsize=(5, min(10, len(counter) * 0.45)))
+    ax.barh(list(counter.keys()), list(counter.values()), color="#1abc9c")
+    ax.set_title("Categorías encontradas", fontsize=12)
+    ax.tick_params(axis='y', labelsize=9)
+    ax.tick_params(axis='x', labelsize=8)
+    fig.tight_layout()
+
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode()
+
+    html_dashboard = f"""
+    <div style="width: 100%; background-color: #f9f9f9; border: 1px solid #ddd; padding: 18px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h4 style="margin-top:0;font-size: 16px; color: #2c3e50; text-align:center;">📊 Categorías detectadas</h4>
+        <img src="data:image/png;base64,{img_base64}" style="width:100%; border-radius: 10px;"/>
+    </div>
+    """
+    return html_dashboard
+
 
 
 
@@ -276,18 +371,16 @@ def mostrar_tarjeta(pub):
         else:
             return "N/D"
 
-    # Título seguro
     title = html.escape(pub.get("title", "[Sin título]"))
-
-    # Resumen heurístico más claro (evitamos scope y "Otro")
-    body = pub.get("body", "")
-    resumen = textwrap.shorten(html.escape(body.strip()), width=300) or "Sin resumen"
-
     depto = html.escape(pub.get("departamento") or "N/D")
     seccion = html.escape(pub.get("seccion") or "N/D")
     epigrafe = html.escape(pub.get("epigrafe") or "")
     extra_tag = html.escape(pub.get("extra_tag", "")) if pub.get("extra_tag") else "Sin Etiqueta Extra"
     categoria_str = html.escape(formato_categoria(pub.get("category")))
+
+    # 🧠 USAMOS RESUMEN REAL si existe
+    resumen_real = pub.get("resumen", "")
+    resumen = html.escape(resumen_real.strip()) if resumen_real else "Sin resumen disponible"
 
     html_tarjeta = f"""
     <div class='tarjeta'>
@@ -309,8 +402,8 @@ def mostrar_tarjeta(pub):
         <p style='margin: 0.3rem 0;'>
             📂 <b>Sección:</b> {seccion_texto}
         </p>
-        <p style='margin-top: 1rem; font-style: italic; color:#5d5d5d;'>
-            “{resumen}”
+        <p style='margin-top: 1rem; color:#333;'>
+            📝 <b>Resumen:</b><br>{resumen}
         </p>
         <p style='margin-top: 1rem; font-weight:500;'>
     """
@@ -324,32 +417,41 @@ def mostrar_tarjeta(pub):
     html_tarjeta += " · ".join(enlaces)
     html_tarjeta += "</p></div>"
 
-    st.markdown(html_tarjeta, unsafe_allow_html=True)
+    st.markdown(f"<div style='margin-top: 5rem;'>{html_tarjeta}</div>", unsafe_allow_html=True)
 
 
-# CONSULTOR INTELIGENTE
+
+# --- MODO CONSULTOR INTELIGENTE CON EFECTOS VISUALES ---
 if mostrar_consultor:
-    st.subheader("🤖 ¿Qué necesitas encontrar?")
-    consulta = st.text_input("Ej: ayudas para autónomos en Galicia")
+    st.markdown("""
+    <div style="max-width:720px;margin:2rem auto 1.5rem auto;padding:1.5rem 2rem;background:radial-gradient(circle at top left, #ecf9f8, #ffffff);border-radius:18px;box-shadow:0 6px 18px rgba(0,0,0,0.06);text-align:center;position:relative;">
+        <div style="position:absolute;top:-30px;left:calc(50% - 30px);">
+            <div style="background:#1abc9c;border-radius:50%;width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:30px;color:white;box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+                🤖
+            </div>
+        </div>
+        <h2 style="margin-top:1.2rem;font-size:1.5rem;color:#2c3e50;">Consultor Inteligente del BOE</h2>
+        <p style="color:#7f8c8d;margin-top:0.2rem;margin-bottom:1.5rem;">Describe lo que necesitas y encontraremos las publicaciones más relevantes para ti.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    consulta = st.text_input("Ej: ayudas para autónomos en Galicia", label_visibility="collapsed")
+    st.session_state.consulta_activa = consulta
 
     db = SessionLocal()
 
-    # CATEGORÍAS DISPONIBLES
     categorias_disponibles = extraer_categorias_unicas(db)
     categorias_filtradas = ["Todas"] + [c for c in categorias_disponibles if c in CATEGORIAS_VALIDAS]
     categoria_seleccionada = st.selectbox("🎯 Filtrar por categoría", categorias_filtradas)
 
-    # REGIONES y SCOPES
     regiones_disponibles = [r.name for r in db.query(Region).all()]
     scopes_disponibles = [s.name for s in db.query(Scope).all()]
 
-    # DETECCIÓN AUTOMÁTICA
     categoria_clasificada = clasificar_categoria_por_regex(consulta)
     region_detectada = detectar_region(consulta, regiones_disponibles)
     scope_detectado = detectar_scope(consulta, scopes_disponibles)
     extra_tag_detectado = detectar_extra_tag(consulta)
 
-    # FECHA
     st.markdown("📆 ¿Desde cuándo te interesan las publicaciones?")
     rango_tiempo = st.radio("🕒 Rango de fechas", ["Últimos 60 días", "Todo el histórico"])
 
@@ -364,7 +466,11 @@ if mostrar_consultor:
         • **Rango temporal:** {rango_tiempo}
         """)
 
-    if st.button("🔍 Buscar publicaciones", key="buscar_consultor"):
+    buscar = st.button("🔍 Buscar publicaciones", key="buscar_consultor", use_container_width=True)
+
+    if buscar:
+        mostrar_skeletons(6)
+
         query = db.query(Publication)
 
         if rango_tiempo == "Últimos 60 días":
@@ -389,10 +495,14 @@ if mostrar_consultor:
         similares = buscar_similares(consulta, [p.__dict__ for p in publicaciones], top_k=len(publicaciones))
         publicaciones_ordenadas = sorted(similares, key=lambda x: x["date"], reverse=True)
 
+        if not publicaciones_ordenadas:
+            mostrar_estado_vacio()
+            st.stop()
+
         st.session_state.resultados_consultor = publicaciones_ordenadas
         st.session_state.pagina_consultor = 0
 
-    # MOSTRAR RESULTADOS SI EXISTEN
+    # Mostrar resultados si existen
     if "resultados_consultor" in st.session_state and st.session_state.resultados_consultor:
         publicaciones_ordenadas = st.session_state.resultados_consultor
         pagina = st.session_state.get("pagina_consultor", 0)
@@ -401,10 +511,31 @@ if mostrar_consultor:
         inicio = pagina * publicaciones_por_pagina
         fin = inicio + publicaciones_por_pagina
 
-        st.subheader(f"📄 Resultados para: *{consulta}*")
-        for pub in publicaciones_ordenadas[inicio:fin]:
-            mostrar_tarjeta(pub)
+        # 📌 Layout alineado: botón + resultados + dashboard
+        with st.container():
+            col_izq, col_der = st.columns([3, 1.4])
 
+            with col_izq:
+                st.markdown(f"""
+                    <div style="margin-top: 0.5rem;">
+                        <h3 style="font-size: 1.6rem; color: #1abc9c; margin-bottom: 0.4rem;">
+                            📄 Resultados para: <em style="color: #2c3e50;">{consulta}</em>
+                        </h3>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            with col_der:
+                dashboard_html = mostrar_dashboard_categorias(publicaciones_ordenadas)
+                if dashboard_html:
+                    st.markdown(f"<div style='margin-top: 1.5rem;'>{dashboard_html}</div>", unsafe_allow_html=True)
+
+        # ✅ Tarjetas bien alineadas y full width
+        for pub in publicaciones_ordenadas[inicio:fin]:
+            st.markdown("""<div style="width: 100%;">""", unsafe_allow_html=True)
+            mostrar_tarjeta(pub)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # Navegación
         col1, col2, col3 = st.columns([1, 2, 1])
         with col1:
             if pagina > 0:
@@ -417,9 +548,13 @@ if mostrar_consultor:
                     st.session_state.pagina_consultor += 1
                     st.rerun()
 
-        st.markdown(f"<div style='text-align:center;'>Página {pagina + 1} de {total_paginas}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='text-align:center; margin-top:1rem;'>Página {pagina + 1} de {total_paginas}</div>", unsafe_allow_html=True)
 
     db.close()
+
+
+
+
 
 
 
