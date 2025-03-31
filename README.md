@@ -1,35 +1,61 @@
 # 📰 AlertaBOE
 
-Sistema inteligente de consulta, clasificación y visualización de publicaciones del BOE (Boletín Oficial del Estado), orientado a facilitar el acceso a la información relevante para autónomos, pymes y ciudadanos.
+**Sistema inteligente de consulta, clasificación y asistencia normativa del BOE**, diseñado para facilitar el acceso a la información relevante a autónomos, pymes y ciudadanos comunes.
+
+> ⚙️ Scrapea, analiza, clasifica y explica publicaciones del BOE de forma automática.  
+> 🎯 Pensado para ser realmente útil, accesible y entendible por cualquier persona.
 
 ---
 
 ## 🚀 ¿Qué hace?
 
-- Permite seleccionar una fecha para consultar el BOE.
-- Extrae todas las publicaciones oficiales del día.
-- Clasifica automáticamente cada publicación (subvención, sanción, normativa, etc.).
-- Guarda los resultados en una base de datos PostgreSQL.
-- Expone una API REST para consumir los datos.
-- Interfaz web construida en Streamlit para consulta directa.
+✅ Funcionalidades principales:
+
+- 📅 Consulta por fecha: Visualiza fácilmente todas las publicaciones oficiales de un día.
+- 🧠 Consultor inteligente: Introduce una consulta en lenguaje natural y te devuelve las publicaciones relevantes clasificadas.
+- 💬 Asistente personal: Recibe una explicación automática de cómo te afecta el BOE, según tu consulta.
+- 🔍 Explorador de legislación consolidada: Encuentra normas legales históricas y actuales por comunidad autónoma, tema o palabras clave.
+- 🧾 Resúmenes automáticos: Cada publicación se resume automáticamente en versión larga y en formato "TikTok" (titular breve).
+- 🧠 Clasificación temática y por región: Toda publicación es categorizada y geolocalizada automáticamente.
+- 🧠 Chat sobre cada publicación: Puedes hacer preguntas directamente sobre cualquier disposición del BOE (con texto enriquecido desde HTML o PDF).
+- 📊 Dashboard de categorías detectadas para cada búsqueda.
 
 ---
 
-## 🧠 ¿Para quién es?
+## 👥 ¿Para quién es?
 
-Autónomos, emprendedores, pequeñas empresas y ciudadanos que necesitan estar informados sobre:
+🔹 Autónomos, pymes, emprendedores  
+🔹 Funcionarios o estudiantes de derecho  
+🔹 Ciudadanos que quieren entender qué publica el BOE sin ser abogados  
+🔹 Periodistas, analistas o consultores legales
 
-- Subvenciones
-- Sanciones o notificaciones
-- Cambios normativos
-- Comunicados oficiales
+Casos típicos:
+
+- “Soy autónomo en Galicia, ¿hay nuevas ayudas?”  
+- “¿Qué publicaciones recientes tratan sobre subvenciones?”  
+- “¿Me afecta alguna normativa nueva sobre transporte escolar?”
+
+---
+
+## 🧠 ¿Qué tiene por dentro?
+
+- FastAPI (backend y API REST)
+- PostgreSQL (base de datos estructurada)
+- Streamlit (interfaz web interactiva)
+- Embeddings con `sentence-transformers` para búsquedas semánticas
+- Modelos LLM vía Groq y Ollama para resúmenes e interacción
+- Clasificación y detección de contexto por regex y NLP
+- Infraestructura lista para procesamiento en batch
 
 ---
 
 ## 📁 Estructura del proyecto
 
-alerta-boe/ │ ├── app/ # Backend con FastAPI │ ├── api/ # Endpoints de la API REST │ ├── core/ # Configuraciones (.env) │ ├── db/ # Modelos y conexión a la base de datos │ ├── schemas/ # Esquemas de entrada/salida (Pydantic) │ └── services/ # Lógica de negocio (scraper y clasificador) │ ├── scripts/ # Scripts ejecutables │ └── fetch_boe.py # Descarga y guarda BOE de un día │ ├── venv/ # Entorno virtual (ignorado) ├── .env # Variables de entorno (ignorado) ├── .gitignore # Archivos a ignorar por Git ├── README.md # Este archivo :) ├── requirements.txt # Dependencias del proyecto ├── create_tables.py # Inicializa las tablas en la base de datos └── frontend.py # Interfaz Streamlit para uso interactivo
+alerta-boe/ │ ├── app/ # Backend con FastAPI │ ├── api/ # Endpoints REST │ ├── db/ # Modelos y sesión SQLAlchemy │ ├── schemas/ # Esquemas de entrada/salida (Pydantic) │ └── services/ # Scrapers, clasificadores, IA, etc. │ ├── scripts/ # Scripts ejecutables (resumidor, fetcher) ├── frontend.py # Interfaz completa en Streamlit ├── create_tables.py # Inicializa la base de datos ├── requirements.txt # Dependencias ├── .env.example # Plantilla de configuración └── README.md # Este archivo :)
 
+yaml
+Copy
+Edit
 
 ---
 
@@ -37,8 +63,8 @@ alerta-boe/ │ ├── app/ # Backend con FastAPI │ ├── api/ # Endpoi
 
 - Python 3.10+
 - PostgreSQL (puerto por defecto: 5432)
-- pip
-- Git
+- Groq API Key (opcional, para resumen vía LLM)
+- Git + pip
 
 ---
 
@@ -49,63 +75,83 @@ alerta-boe/ │ ├── app/ # Backend con FastAPI │ ├── api/ # Endpoi
 git clone https://github.com/TU_USUARIO/alerta-boe.git
 cd alerta-boe
 
-# 2. Crea entorno virtual
+# 2. Crea y activa entorno virtual
 python -m venv venv
-.\venv\Scripts\activate
+source venv/bin/activate  # o .\venv\Scripts\activate en Windows
 
 # 3. Instala dependencias
 pip install -r requirements.txt
 
-# 4. Configura tu archivo .env
-copy .env.example .env
-# (modifica tu contraseña y nombre de base de datos)
+# 4. Copia el archivo de entorno
+cp .env.example .env  # y edítalo con tus credenciales
 
-# 5. Crea la base de datos en PostgreSQL: alertaBOE
+# 5. Crea la base de datos en PostgreSQL
+#    nombre sugerido: alertaBOE
+
 # 6. Ejecuta creación de tablas
 python create_tables.py
 
-# 7. (Opcional) Lanza API y frontend por separado
-uvicorn app.main:app --reload
-streamlit run frontend.py
-
+# 7. Lanza backend y frontend
+uvicorn app.main:app --reload         # Puerto 8000
+streamlit run frontend.py             # Puerto 8501
 🌐 Uso de la interfaz
-Ve a http://localhost:8501
+Ve a 👉 http://localhost:8501 y prueba:
 
-Introduce una fecha (formato YYYYMMDD)
+📅 Elige una fecha → BOE se scrapea y muestra
 
-Se lanzará automáticamente el scraping
+🤖 Haz una pregunta tipo: "Autónomo en Valencia, ¿subvenciones recientes?"
 
-Luego se mostrarán los resultados en pantalla
+💬 Usa el asistente para recibir explicaciones directas
 
-También puedes consultarlos vía http://localhost:8000/docs
+🔎 Consulta legislación histórica y filtrada por tema
 
+🧠 Haz clic en cualquier tarjeta y habla con ella vía chat contextual
+
+🧪 Scripts útiles
+bash
+Copy
+Edit
+# Descargar y guardar publicaciones del BOE por fecha
+python -m scripts.fetch_boe 20240315
+
+# Generar resúmenes para las publicaciones faltantes
+python -m scripts.resumidor_offline --limit 50
+
+# También puedes usar rangos
+python -m scripts.resumidor_offline --from 2023-01-01 --to 2023-01-31
 💡 Posibilidades futuras
-Clasificación con IA (GPT, embeddings)
+Sistema de alertas por temas, regiones o categorías
 
-Sistema de alertas (correo, Telegram, notificaciones)
+Usuarios con login + favoritos + seguimiento normativo
 
-Filtros avanzados por sector/ámbito
+Versión móvil / API pública para desarrolladores
 
-Dashboard interactivo para visualización
+Integración con Telegram o WhatsApp
 
-API pública con autenticación
+Informes automáticos en PDF
+
+Plugin para navegador que detecte si una ley te afecta
 
 🛡️ Seguridad
-Este repositorio no sube .env, contraseñas ni entornos virtuales. Asegúrate de tener .gitignore activo y no subir datos sensibles.
+Este repositorio no contiene claves sensibles ni sube el archivo .env.
+Asegúrate de no subir tus credenciales ni tu entorno virtual.
 
 🤝 Contribución
-¿Te gustaría aportar ideas o funcionalidades?
-¡Haz un fork, crea un branch y lánzate!
+¿Te gusta el proyecto?
+¿Quieres ayudar, proponer ideas, mejorar diseño o rendimiento?
 
 bash
 Copy
+Edit
 git checkout -b nueva-feature
-Pull requests y sugerencias siempre son bienvenidas.
+Pull requests y sugerencias siempre son bienvenidas 🫶
 
 📄 Licencia
 MIT License.
-Este proyecto es abierto para ayudar a democratizar el acceso al BOE y a la información pública.
+Hecho para facilitar el acceso a la información pública y al BOE.
+Úsalo, mejóralo, compártelo.
 
 🧑‍💻 Autor
 Pablo Fraga — Data Scientist, Developer & Product Thinker
-Construido con Python, ❤️ y ganas de cambiar las cosas.
+
+Construido con Python, 💙 y muchas ganas de cambiar las cosas.

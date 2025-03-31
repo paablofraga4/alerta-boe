@@ -54,6 +54,7 @@ class Publication(Base):
 
     # 🆕 NUEVO CAMPO: resumen generado automáticamente
     resumen = Column(String, nullable=True)
+    resumen_tiktok = Column(String, nullable=True)
 
     # 🧠 OPCIONAL: embedding vectorial para búsqueda semántica
     # embedding = Column(Vector(384))
@@ -77,3 +78,13 @@ class Legislacion(Base):
     indice = Column(String, nullable=True)
     resumen = Column(String, nullable=True)
     url_html = Column(String)
+
+
+class Favorito(Base):
+    __tablename__ = "favoritos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, index=True)  # identificador único de sesión
+    publication_id = Column(Integer, ForeignKey("publications.id"))
+
+    publication = relationship("Publication")

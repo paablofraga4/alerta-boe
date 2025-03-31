@@ -1,5 +1,5 @@
 
-from app.services.semantic_search import buscar_similares
+from app.services.semantic_search import buscar_similares_por_embedding
 from app.db.session import SessionLocal
 from app.db.models import Publication
 from datetime import datetime
@@ -28,7 +28,7 @@ def main():
         return
 
     textos = [p.title + " " + (p.summary or "") for p in publicaciones]
-    similares = buscar_similares(consulta, textos)
+    similares = buscar_similares_por_embedding(consulta, textos)
 
     print(f"\n📄 Resultados más relevantes para: '{consulta}'\n")
 

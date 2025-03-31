@@ -159,20 +159,7 @@ def procesar_item(item, fecha, session, seccion, seccion_codigo, departamento, e
     scope_id = get_or_create_scope(texto_completo, session)
 
     texto_html = extraer_texto_desde_html(url_html)
-    resumen = ""
-
-    if texto_html:
-        print(f"📝 Resumiendo publicación: {titulo[:80]}...")
-        for intento in range(3):
-            resumen = resumir_texto(texto_html)
-            if resumen:
-                break
-            print(f"⏳ Intento {intento + 1} fallido. Esperando para reintentar...")
-            time.sleep(4 + intento * 3)  # Backoff: 4s, 7s, 10s
-        if not resumen:
-            print(f"⚠️ No se pudo generar resumen para: {titulo[:80]}")
-        else:
-            time.sleep(1.2)  # Pausa tras éxito
+    resumen = None  # Se dejará vacío, para rellenar después offline
 
     pub = Publication(
         date=datetime.strptime(fecha, "%Y%m%d").date(),
@@ -188,7 +175,8 @@ def procesar_item(item, fecha, session, seccion, seccion_codigo, departamento, e
         url_html=url_html,
         url_pdf=url_pdf,
         pages=pages,
-        resumen=resumen,
+        resumen=None,
+        resumen_tiktok = None
     )
 
     session.add(pub)
