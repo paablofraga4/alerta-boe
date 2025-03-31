@@ -12,6 +12,9 @@ import html  # para escapar strings peligrosos
 from sqlalchemy import func
 import matplotlib.pyplot as plt
 from io import BytesIO
+import io
+from bs4 import BeautifulSoup
+import PyPDF2
 
 
 from app.db.session import SessionLocal
@@ -349,96 +352,208 @@ def serializar_publicacion(pub: Publication) -> dict:
     }
 
 
-# COMPONENTES DE TARJETA
+def extraer_texto_de_html(url: str) -> str:
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            # Elimina etiquetas de script y style
+            for script in soup(["script", "style"]):
+                script.decompose()
+            texto = soup.get_text(separator=" ", strip=True)
+            return texto
+    except Exception as e:
+        print("Error al obtener HTML:", e)
+    return ""
 
-def mostrar_tarjeta_legislacion(norm):
-    vigente = '✅' if norm.get("vigente") else '❌'
-    st.markdown(f"""
-    <div class='tarjeta'>
-        <h4>🔖 {html.escape(norm['titulo'])}</h4>
-        <p><b>Fecha publicación:</b> {norm['fecha_publicacion']} | <b>Vigente:</b> {vigente}</p>
-        <p><b>Departamento:</b> {html.escape(norm['departamento'])} | <b>Rango:</b> {html.escape(norm['rango'])}</p>
-        <p><a href="{norm['url_boe']}" target="_blank">🔗 Ver en el BOE</a></p>
-    </div>
-    """, unsafe_allow_html=True)
+# Función para extraer texto de una URL PDF
+def extraer_texto_de_pdf(url: str) -> str:
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            with io.BytesIO(response.content) as f:
+                reader = PyPDF2.PdfReader(f)
+                texto = ""
+                for page in reader.pages:
+                    page_text = page.extract_text() or ""
+                    texto += page_text
+                return texto
+    except Exception as e:
+        print("Error al obtener PDF:", e)
+    return ""
 
 def mostrar_tarjeta(pub):
     pub_id = pub.get("id")
 
-    if f"detalle_abierto_{pub_id}" not in st.session_state:
-        st.session_state[f"detalle_abierto_{pub_id}"] = False
+    if "detalle_abierto" not in st.session_state:
+        st.session_state["detalle_abierto"] = None
+    if f"chat_historial_{pub_id}" not in st.session_state:
+        st.session_state[f"chat_historial_{pub_id}"] = []
 
-    # -------- CARD COMPACTA --------
-    if not st.session_state[f"detalle_abierto_{pub_id}"]:
-        resumen_tiktok = pub.get("resumen_tiktok", "🌀 No hay resumen breve aún.")
+    resumen_tiktok = html.escape(str(pub.get("resumen_tiktok") or "🌀 No hay resumen breve aún."))
+    resumen_detallado = html.escape(str(pub.get("resumen") or "🌀 No hay resumen detallado aún."))
+    categoria = html.escape(formato_categoria(pub.get("category") or ""))
+    dpto = html.escape(str(pub.get("departamento") or "N/D"))
+    fecha = str(pub.get("date") or "N/D")
+    title = html.escape(str(pub.get("title") or "[Sin título]"))
+    extra_tag = html.escape(str(pub.get("extra_tag") or "Sin etiqueta extra"))
+    url_html = str(pub.get("url_html") or "#")
+    url_pdf = str(pub.get("url_pdf") or "")
 
-        st.markdown(f"""
-        <div class='tarjeta'>
-            <h4>📄 {html.escape(pub.get('title', '[Sin título]'))}</h4>
-            <p style='margin: 0.3rem 0;'>
-                🗓️ <b>Fecha:</b> {pub.get("date", "N/D")} &nbsp;&nbsp;
-                🏛️ <b>Dpto:</b> {html.escape(pub.get("departamento") or "N/D")}
+    if "volver_a_pub" in st.session_state:
+        anchor = st.session_state.pop("volver_a_pub")
+        st.markdown(f"<script>window.location.hash = '#{anchor}'</script>", unsafe_allow_html=True)
+
+    # Vista de la tarjeta simple
+    if st.session_state["detalle_abierto"] is None:
+        st.markdown(f"<a id='pub_{pub_id}'></a>", unsafe_allow_html=True)
+        st.markdown(f""" 
+        <div style="background-color: #f9f9fc; border: 1px solid #ddd; border-radius: 16px; padding: 1rem 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 0.6rem;">📄 {title}</h4>
+            <div style="font-size: 0.9rem; color: #555;">
+                🗓️ <b>Fecha:</b> {fecha} &nbsp;&nbsp;
+                🏛️ <b>Dpto:</b> {dpto}
+            </div>
+            <div style="margin: 0.4rem 0;">
+                🏷️ <b>Categoría:</b>
+                <span style="background: #e0f0ff; padding: 0.2rem 0.6rem; border-radius: 6px;">{categoria}</span>
+            </div>
+            <div style="margin-bottom: 0.4rem;">🔖 <b>Etiqueta:</b> {extra_tag}</div>
+            <p style="margin-top: 0.8rem; color: #333;">
+                📌 <b>Resumen breve:</b><br>{resumen_tiktok}
             </p>
-            <p style='margin: 0.3rem 0;'>
-                🏷️ <b>Categoría:</b> {html.escape(formato_categoria(pub.get("category")))}
-            </p>
-            <p style='margin: 0.3rem 0;'>🔖 <b>Etiqueta:</b> {html.escape(pub.get("extra_tag") or "Sin etiqueta extra")}</p>
-            <p style='margin-top: 1rem;'>📌 <b>Resumen breve:</b><br>{resumen_tiktok}</p>
-            <p style='margin-top: 1rem; font-weight:500;'>
-                <a href="{pub['url_html']}" target="_blank">🔗 Ver en BOE</a>
-                {' · ' if pub.get('url_pdf') else ''}
-                <a href="{pub['url_pdf']}" target="_blank">⬇️ PDF</a>
-            </p>
+            <div style="margin-top: 1rem;">
+                <a href="{url_html}" target="_blank">🔗 Ver en BOE</a>
+                {" · " if url_pdf else ""}
+                <a href="{url_pdf}" target="_blank">⬇️ PDF</a>
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
         if st.button("🧠 Ver detalle / Chatear", key=f"btn_detalle_{pub_id}"):
-            st.session_state[f"detalle_abierto_{pub_id}"] = True
+            st.session_state["detalle_abierto"] = pub_id
+            st.rerun()
 
-    # -------- VISTA EXPANDIDA --------
-    else:
-        st.markdown(f"""
-        <div class='tarjeta' style="border-left: 6px solid #f39c12;">
-            <h4>🗂️ {html.escape(pub.get('title', '[Sin título]'))}</h4>
-            <p><b>Resumen completo:</b><br>{pub.get("resumen", "Sin resumen completo")}</p>
-            <p><b>Texto legal:</b></p>
-            <div style="max-height: 200px; overflow-y: auto; background-color: #f6f6f6; padding: 0.8rem; border-radius: 12px;">
-                <code style="white-space: pre-wrap;">{html.escape(pub.get('body', ''))}</code>
-            </div>
+    # Vista de detalle y chat para la publicación seleccionada
+    elif st.session_state["detalle_abierto"] == pub_id:
+        st.markdown("""
+            <style>
+                header, footer, .stSidebar { display: none !important; }
+                .block-container { padding-top: 0rem !important; }
+            </style>
         """, unsafe_allow_html=True)
+        # Forzamos el scroll hacia arriba con retardo
+        st.markdown(f"<script>setTimeout(function(){{document.getElementById('pub_{pub_id}').scrollIntoView({{behavior:'smooth', block:'start'}});}}, 100);</script>", unsafe_allow_html=True)
 
-        # 🧠 Chat contextual
-        if f"chat_historial_{pub_id}" not in st.session_state:
-            st.session_state[f"chat_historial_{pub_id}"] = []
+        with st.container():
+            st.markdown(f"<div style='color: green;'>✅ Entrando en detalle para pub_id: {pub_id}</div>", unsafe_allow_html=True)
+            st.write("🧪 Session state detalle_abierto:", st.session_state["detalle_abierto"])
 
-        pregunta = st.text_input("Haz una pregunta sobre esta publicación:", key=f"chat_input_{pub_id}")
-        if pregunta:
-            with st.spinner("Pensando..."):
-                try:
-                    r = requests.post(
-                        "http://localhost:8000/api/chat-documento",
-                        json={
-                            "texto": pub.get("body", ""),
-                            "historial": st.session_state[f"chat_historial_{pub_id}"] + [{"role": "user", "content": pregunta}]
-                        },
-                        timeout=45
-                    )
-                    if r.status_code == 200:
-                        data = r.json()
-                        st.session_state[f"chat_historial_{pub_id}"].append({"role": "user", "content": pregunta})
-                        st.session_state[f"chat_historial_{pub_id}"].append({"role": "assistant", "content": data.get("respuesta", "(sin respuesta)")})
-                    else:
-                        st.warning("⚠️ No se pudo obtener respuesta del asistente.")
-                except Exception as e:
-                    st.warning(f"⚠️ Error: {e}")
+            st.markdown("""
+            <style>
+                .modal-container {
+                    background-color: #ffffff; 
+                    padding: 2rem 3rem; 
+                    border: 1px solid #ddd;
+                    border-radius: 16px;
+                    margin-top: 1rem;
+                    font-family: 'Segoe UI', sans-serif;
+                }
+                .modal-header {
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    margin-bottom: 1rem;
+                }
+            </style>
+            """, unsafe_allow_html=True)
 
-        for msg in st.session_state[f"chat_historial_{pub_id}"][-6:]:
-            rol = "🧑‍💼 Tú:" if msg["role"] == "user" else "🤖 Asistente:"
-            st.markdown(f"**{rol}** {msg['content']}")
+            with st.container():
+                st.markdown(f""" 
+                <div class="modal-container">
+                    <div class="modal-header">
+                        <span style="font-weight: 600; font-size: 1rem; color: #999;">Detalle de publicación</span>
+                        <button type="button" id="btnCerrar" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #f25;">❌</button>
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1.5rem; line-height: 1.5; color: #222;">
+                        📄 {title}
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 1rem; line-height: 1.6; color: #333;">
+                        🧾 <b>Resumen detallado:</b><br>{resumen_detallado}
+                    </p>
+                    <p style="margin-top: 1rem; font-size: 0.95rem;">
+                        <a href="{url_html}" target="_blank">🔗 Ver en BOE</a>
+                        {" · " if url_pdf else ""}
+                        <a href="{url_pdf}" target="_blank">⬇️ PDF</a>
+                    </p>
+                    <hr style="margin: 2rem 0;" />
+                </div>
+                """, unsafe_allow_html=True)
 
-        if st.button("❌ Cerrar vista", key=f"cerrar_detalle_{pub_id}"):
-            st.session_state[f"detalle_abierto_{pub_id}"] = False
+            historial = st.session_state[f"chat_historial_{pub_id}"]
 
+            # Si el historial está vacío, no se muestra ningún mensaje
+            for msg in historial[-10:]:
+                if msg["role"] == "user":
+                    st.markdown(f""" 
+                    <div style="background-color:#d9eaff; padding:0.6rem 1rem; border-radius:12px; margin:0.5rem 0; max-width:80%; margin-left:auto; text-align:right;">
+                        🧑‍💼 <b>Tú:</b> {msg["content"]}
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f""" 
+                    <div style="background-color:#f1f1f1; padding:0.6rem 1rem; border-radius:12px; margin:0.5rem 0; max-width:80%;">
+                        🤖 <b>Asistente:</b> {msg["content"]}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with st.form(key=f"form_chat_{pub_id}", clear_on_submit=True):
+                pregunta = st.text_input(
+                    label="Pregunta",  
+                    key=f"chat_input_{pub_id}_text",
+                    placeholder="✍️ Escribe tu pregunta...",
+                    label_visibility="collapsed"
+                )
+                submitted = st.form_submit_button("Enviar")
+                if submitted and pregunta.strip():
+                    with st.spinner("Pensando..."):
+                        try:
+                            # Determinar qué URL usar para obtener el contenido
+                            if url_html != "#" and url_html.strip():
+                                texto_contexto = extraer_texto_de_html(url_html)
+                            elif url_pdf.strip():
+                                texto_contexto = extraer_texto_de_pdf(url_pdf)
+                            else:
+                                texto_contexto = ""
+                            
+                            r = requests.post(
+                                "http://localhost:8000/api/chat-documento",
+                                json={
+                                    "texto": texto_contexto,
+                                    "historial": historial + [{"role": "user", "content": pregunta}]
+                                },
+                                timeout=60
+                            )
+                            if r.status_code == 200:
+                                data = r.json()
+                                respuesta = data.get("respuesta", "(sin respuesta)")
+                                historial.append({"role": "user", "content": pregunta})
+                                historial.append({"role": "assistant", "content": respuesta})
+                                st.rerun()
+                            else:
+                                st.warning("⚠️ El asistente no respondió.")
+                        except Exception as e:
+                            st.warning(f"⚠️ Error: {e}")
+
+            if st.button("💡 Probar con ejemplo", key=f"dummy_{pub_id}"):
+                historial.append({"role": "user", "content": "¿De qué trata esta publicación?"})
+                historial.append({"role": "assistant", "content": "Este documento trata sobre un convenio para informes médicos del INSS."})
+                st.rerun()
+
+            if st.button("❌ Cerrar vista", key=f"cerrar_{pub_id}"):
+                st.session_state["detalle_abierto"] = None
+                st.session_state["volver_a_pub"] = f"pub_{pub_id}"
+                st.rerun()
 
 
 

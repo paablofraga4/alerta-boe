@@ -5,6 +5,7 @@ from datetime import datetime
 
 from app.db.session import get_db
 from app.db.models import Publication
+from app.services.boe_fetcher import fetch_boe_json  # 👈 Asegúrate que esté importado correctamente
 
 router = APIRouter()
 
@@ -16,6 +17,12 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
         return JSONResponse(content={"error": "Formato de fecha inválido. Usa YYYY-MM-DD."}, status_code=400)
 
     publicaciones = db.query(Publication).filter(Publication.date == fecha_obj).all()
+
+    # ⚡ Si no hay publicaciones, las buscamos en el BOE y guardamos
+    if not publicaciones:
+        print(f"📡 No había publicaciones en DB para {fecha}, llamando a BOE…")
+        fetch_boe_json(fecha.replace("-", ""))  # La función espera formato YYYYMMDD
+        publicaciones = db.query(Publication).filter(Publication.date == fecha_obj).all()
 
     publicaciones_serializadas = []
     for pub in publicaciones:
@@ -33,7 +40,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "url_html": pub.url_html,
             "url_pdf": pub.url_pdf,
             "pages": pub.pages,
-            "resumen": pub.resumen,  # 👈💥 Aquí lo que faltaba
+            "resumen": pub.resumen,
         })
 
     return JSONResponse(content=publicaciones_serializadas)
