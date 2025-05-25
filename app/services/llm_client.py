@@ -23,21 +23,29 @@ Puedes mencionar categorías (ayudas, empleo, fiscalidad, etc.)."""
         )}
     ]
 
-    response = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": "llama-3.3-70b-versatile",
-            "messages": prompt,
-            "temperature": 0.5,
-            "stream": False
-        },
-        timeout=90  # 👈 aumenta aquí también si quieres
-    )
-    data = response.json()
-    print("Respuesta de la API:", data)
-    return response.json()["choices"][0]["message"]["content"]
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": prompt,
+                "temperature": 0.5,
+                "stream": False
+            },
+            timeout=90
+        )
+        data = response.json()
+        print("Respuesta de la API:", data)
+        return data["choices"][0]["message"]["content"]
 
+    except KeyError:
+        print("Error: No se encontró 'choices' en la respuesta de la API.")
+        return "⚠️ El sistema está sobrecargado. Por favor, inténtalo de nuevo en unos minutos."
+
+    except Exception as e:
+        print(f"Error inesperado: {e}")
+        return "⚠️ Se ha producido un error al procesar la consulta. Intenta de nuevo más tarde."

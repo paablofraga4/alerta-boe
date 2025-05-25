@@ -43,6 +43,7 @@ def publicaciones_por_fecha(fecha: str, db: Session = Depends(get_db)):
             "url_pdf": pub.url_pdf,
             "pages": pub.pages,
             "resumen": pub.resumen,
+            "resumen_tiktok": pub.resumen_tiktok
         })
 
     return JSONResponse(content=publicaciones_serializadas)
@@ -84,6 +85,7 @@ def obtener_favoritos(session_id: str, db: Session = Depends(get_db)):
             "url_pdf": pub.url_pdf,
             "pages": pub.pages,
             "resumen": pub.resumen,
+            "resumen_tiktok": pub.resumen_tiktok
         })
 
     return JSONResponse(content=publicaciones_serializadas)

@@ -78,6 +78,7 @@ class Legislacion(Base):
     indice = Column(String, nullable=True)
     resumen = Column(String, nullable=True)
     url_html = Column(String)
+    resumen_tiktok = Column(String, nullable=True)
 
 
 class Favorito(Base):

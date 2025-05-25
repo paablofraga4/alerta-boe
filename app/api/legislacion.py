@@ -89,7 +89,8 @@ def listar_normas(
             fecha_vigencia=n.get("fecha_vigencia"),
             estado=n.get("estado_consolidacion", {}).get("texto", ""),
             vigente=n.get("vigencia_agotada", "N") == "N",
-            url_boe=n.get("url_html_consolidada")
+            url_boe=n.get("url_html_consolidada"),
+            resumen_tiktok=n.get("resumen_tiktok") or n.get("texto_resumen") or ""
         ))
 
     return normas_limpias
@@ -111,6 +112,10 @@ def obtener_detalle_legislacion(legislation_id: str):
         raise HTTPException(status_code=404, detail="Norma no encontrada")
 
     meta = data[0]
+    
+    # ✅ fallback si no viene como resumen_tiktok
+    resumen = meta.get("resumen_tiktok") or meta.get("texto_resumen") or ""
+
     return NormaResumen(
         id=meta.get("identificador"),
         titulo=meta.get("titulo"),
@@ -122,7 +127,8 @@ def obtener_detalle_legislacion(legislation_id: str):
         fecha_vigencia=meta.get("fecha_vigencia"),
         estado=meta.get("estado_consolidacion", {}).get("texto", ""),
         vigente=meta.get("vigencia_agotada", "N") == "N",
-        url_boe=meta.get("url_html_consolidada")
+        url_boe=meta.get("url_html_consolidada"),
+        resumen_tiktok=resumen  # ✅ incluido en el response
     )
 
 # 📑 Endpoint para obtener el índice (bloques/artículos) de una norma

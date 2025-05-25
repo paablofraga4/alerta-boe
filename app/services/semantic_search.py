@@ -26,10 +26,10 @@ def buscar_similares_por_embedding(query_text, publicaciones, top_k=5, modo="con
     query_embedding = model.encode(query_text, convert_to_tensor=True)
 
     # Extraer títulos según el modo
-    if modo == "consultor_inteligente":
+    if modo == "consultor":
         titulos_consultor_inteligente = [pub.get("title", "") for pub in publicaciones]
         titulos = titulos_consultor_inteligente
-    elif modo == "consultor_personal":
+    elif modo == "asistente":
         titulos_consultor_personal = [pub.title or "" for pub in publicaciones]
         titulos = titulos_consultor_personal
     else:

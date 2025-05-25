@@ -562,6 +562,8 @@ def mostrar_tarjeta(pub):
             for cat in categoria.split(','):
                 if cat.strip():
                     categorias_html += f'<span class="tag">{cat.strip()}</span>'
+
+        print(resumen_tiktok)
         
         # Renderizar tarjeta
         st.markdown(
@@ -586,7 +588,8 @@ def mostrar_tarjeta(pub):
                 <div style="margin-top:1rem; margin-bottom:1rem;">
                     <span style="font-weight:500;">📌 Resumen breve:</span>
                     <div style="margin-top:0.3rem;">
-                        {html.unescape(resumen_tiktok)}
+                        st.code(resumen_tiktok, language="html")  # 
+                        {(html.unescape(resumen_tiktok))}
                     </div>
                 </div>
                 <div style="display:flex; gap:1rem;">
@@ -622,7 +625,7 @@ def mostrar_tarjeta(pub):
     
     # Vista de detalle (tarjeta abierta)
     else:
-        resumen_detallado = html.escape(str(pub.get("resumen") or "🌀 No hay resumen detallado aún."))
+        # resumen_detallado = html.escape(str(pub.get("resumen_tiktok") or "🌀 No hay resumen detallado aún."))
         historial = st.session_state[f"chat_historial_{pub_id}"]
         
         # Ocultar elementos de la interfaz para el modo detalle
@@ -659,7 +662,8 @@ def mostrar_tarjeta(pub):
                         📄 {title}
                     </div>
                     <p style="margin-top: 1rem; font-size: 1rem; line-height: 1.6; color: {st.session_state.modo_oscuro and '#ecf0f1' or '#333'};">
-                        🧾 <b>Resumen detallado:</b><br>{resumen_detallado}
+                            st.code(resumen_tiktok, language="html")
+                        🧾 <b>Resumen detallado:</b><br>{(html.unescape(resumen_tiktok)) or "Sin resumen"}
                     </p>
                     <p style="margin-top: 1rem; font-size: 0.95rem;">
                         <a href="{url_html}" target="_blank" style="color:{st.session_state.modo_oscuro and '#3498db' or '#2980b9'};">🔗 Ver en BOE</a>
@@ -813,7 +817,9 @@ if modo == "consultor":
         
         if buscar:
             with st.spinner("Buscando publicaciones relevantes..."):
-                mostrar_skeletons(5)
+                skeleton_placeholder = st.empty()
+                with skeleton_placeholder.container():
+                    mostrar_skeletons(5)
                 
                 # Construir la consulta
                 query = db.query(Publication)
@@ -855,6 +861,7 @@ if modo == "consultor":
                 # Mostrar mensaje si no hay resultados
                 if not publicaciones_ordenadas:
                     mostrar_estado_vacio()
+                skeleton_placeholder.empty()
         
         # Mostrar resultados si existen
         if "resultados_consultor" in st.session_state and st.session_state.resultados_consultor:
@@ -962,6 +969,7 @@ elif modo == "fecha":
     
 # MODO ASISTENTE PERSONAL
 elif modo == "asistente":
+    st.session_state.detalle_abierto = None
     st.markdown(
         """
         <div class="feature-section">
@@ -985,7 +993,9 @@ elif modo == "asistente":
     
     if st.button("🔍 Consultar asistente", use_container_width=True):
         with st.spinner("🧠 Analizando tu mensaje y buscando coincidencias..."):
-            mostrar_skeletons(3)
+            skeleton_placeholder = st.empty()
+            with skeleton_placeholder.container():
+                mostrar_skeletons(3)
             
             try:
                 r = requests.post(
@@ -993,33 +1003,37 @@ elif modo == "asistente":
                     json={"mensaje": consulta_asistente},
                     timeout=45
                 )
+                skeleton_placeholder.empty()
                 
                 if r.status_code == 200:
                     data = r.json()
                     explicacion = data.get("explicacion")
-                    publicaciones = data.get("publicaciones", [])
-                    
-                    if explicacion:
-                        st.markdown(
-                            f"""
-                            <div style="background-color:{st.session_state.modo_oscuro and '#2c3e50' or '#f1f8f6'};
-                                  border-left:5px solid #1abc9c;
-                                  padding:1.5rem;
-                                  border-radius:12px;
-                                  margin:1.5rem 0;">
-                                <h3 style="margin-top:0;">💡 Explicación del asistente</h3>
-                                <p style="margin-bottom:0;">{explicacion}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-                    
-                    if publicaciones:
-                        st.subheader("📄 Publicaciones relacionadas")
-                        for pub in publicaciones:
-                            mostrar_tarjeta(pub)
+                    if explicacion != "⚠️ El sistema está sobrecargado. Por favor, inténtalo de nuevo en unos minutos.":
+                        publicaciones = data.get("publicaciones", [])
+                        
+                        if explicacion:
+                            st.markdown(
+                                f"""
+                                <div style="background-color:{st.session_state.modo_oscuro and '#2c3e50' or '#f1f8f6'};
+                                    border-left:5px solid #1abc9c;
+                                    padding:1.5rem;
+                                    border-radius:12px;
+                                    margin:1.5rem 0;">
+                                    <h3 style="margin-top:0;">💡 Explicación del asistente</h3>
+                                    <p style="margin-bottom:0;">{explicacion}</p>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                        
+                        if publicaciones:
+                            st.subheader("📄 Publicaciones relacionadas")
+                            for pub in publicaciones:
+                                mostrar_tarjeta(pub)
+                        else:
+                            mostrar_estado_vacio()
                     else:
-                        mostrar_estado_vacio()
+                        st.markdown(f"{explicacion}")
                 else:
                     st.error(f"❌ Error en la API: {r.status_code}")
             except Exception as e:
@@ -1131,7 +1145,10 @@ elif modo == "legislacion":
             st.warning("⚠️ Por favor, introduce un tema de búsqueda")
         else:
             with st.spinner("🔍 Consultando la API del BOE..."):
-                mostrar_skeletons(3)
+                # Crear el placeholder para los skeletons
+                skeleton_placeholder = st.empty()
+                with skeleton_placeholder.container():
+                    mostrar_skeletons(3)
                 
                 try:
                     # Construir consulta
@@ -1160,6 +1177,7 @@ elif modo == "legislacion":
                     )
                     
                     if response.status_code == 200:
+                        skeleton_placeholder.empty()
                         resultados = response.json()
                         
                         if resultados:
@@ -1188,7 +1206,7 @@ elif modo == "legislacion":
                                                 <div style="margin-bottom:0.8rem;">
                                                     <span style="font-weight:500;">📝 Rango:</span> {resumen.get('rango', 'N/D')}
                                                 </div>
-                                                {f'<div style="margin-bottom:1rem;"><span style="font-weight:500;">📌 Resumen:</span> {resumen.get("texto_resumen", "")}</div>' if resumen.get("texto_resumen") else ''}
+                                                {f'<div style="margin-bottom:1rem;"><span style="font-weight:500;">📌 Resumen:</span> {resumen.get("resumen_tiktok", "")}</div>' if resumen.get("resumen_tiktok") else ''}
                                                 <a href="{resumen.get('url', '#')}" target="_blank" style="text-decoration:none; color:#2980b9;">🔗 Ver en BOE</a>
                                             </div>
                                             """,

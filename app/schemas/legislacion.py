@@ -33,6 +33,7 @@ class NormaResumen(BaseModel):
     vigente: bool
     url_boe: str
     url_eli: Optional[str] = None
+    resumen_tiktok: Optional[str] = None  # ✅ agregado correctamente
 
 
 # 👉 Para /legislacion/indice
