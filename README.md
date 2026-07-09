@@ -7,6 +7,56 @@
 
 ---
 
+## 🏗️ Refactor 2.0 (en curso)
+
+El proyecto está siendo reescrito sobre una arquitectura nueva, documentada en
+[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): monorepo con paquete de dominio
+`boe/`, API `apps/api` (FastAPI async), web `apps/web` (Next.js), PostgreSQL +
+pgvector, grafo normativo ("hilo y precedentes") y fábrica de contenido para
+redes. El código de la carpeta `app/` y `frontend.py` es **legacy** y se
+retirará en fases posteriores; convive con el nuevo mientras dure la migración.
+
+### Puesta en marcha (stack 2.0)
+
+```bash
+# 1. Instalar el paquete y las dependencias de desarrollo
+pip install -e ".[dev]"
+
+# 2. Configurar el entorno
+cp .env.example .env    # edita GROQ_API_KEY, etc.
+
+# 3. Levantar todo con Docker (Postgres+pgvector, API y worker)
+docker compose -f infra/docker-compose.yml up --build
+#    La API aplica las migraciones y queda en http://localhost:8000/docs
+
+# --- o, sin Docker, contra tu propio Postgres con pgvector ---
+alembic upgrade head             # crea la extensión vector + el esquema
+uvicorn apps.api.main:app --reload --port 8000
+
+# 4. Comprobar configuración y smoke test de los clientes del BOE
+boe check
+boe fetch-summary 20240709
+```
+
+### Calidad
+
+```bash
+ruff check boe apps tests     # lint
+pytest -q                     # tests (parsing del BOE, router LLM, cliente HTTP)
+```
+
+El CI (GitHub Actions) ejecuta lint, tests y aplica las migraciones sobre un
+Postgres con pgvector en cada PR.
+
+---
+
+## 📜 Documentación legacy
+
+> Lo que sigue describe el sistema actual (Streamlit + scripts), que se mantiene
+> operativo durante el refactor.
+
+---
+
 ## 🚀 ¿Qué hace?
 
 ✅ Funcionalidades principales:
