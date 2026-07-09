@@ -12,8 +12,6 @@ fases de desarrollo.
 
 ## 1. Diagnóstico del estado actual
 
-### 1.1 alerta-boe (este repo)
-
 Lo que ya funciona y merece conservarse **como lógica**, no como código:
 
 | Pieza | Estado | Veredicto |
@@ -32,17 +30,6 @@ Problemas transversales:
 - No hay tests, ni CI, ni Docker, ni migraciones. Scripts sueltos (`create_tables.py`, `drop_tables.py`, `bulk_scraper.py`) hacen de infraestructura.
 - Todo el I/O es síncrono (`requests`) dentro de una app FastAPI async.
 - El trabajo pesado (resúmenes LLM) se hace offline con scripts manuales, sin estado de pipeline: no se sabe qué publicación está en qué fase.
-
-### 1.2 UAT_Agents
-
-Proyecto independiente (operador de navegador IA para UAT). **No se fusiona**, pero es el donante de patrones
-para la nueva web y los agentes:
-
-- Frontend Next.js 14 (App Router) + Tailwind + panel de eventos por WebSocket.
-- Backend FastAPI con separación limpia `api/ / agents/ / browser/ / storage/`.
-- Grafo de agentes LangGraph (Observer → Planner → Executor → Validator → Reporter) con acciones allowlisted — el mismo patrón sirve para la fábrica de contenido (Curador → Guionista → Validador → Render → Publicador).
-
----
 
 ## 2. Las APIs del BOE (la materia prima)
 
@@ -109,7 +96,7 @@ alerta-boe/
 │   │       ├── main.py
 │   │       ├── deps.py
 │   │       └── routers/      # v1: documents, search, graph, chat, digest
-│   └── web/                  # Next.js 14 App Router + Tailwind (patrón UAT_Agents)
+│   └── web/                  # Next.js 14 App Router + Tailwind
 ├── boe/                      # paquete Python instalable con el dominio
 │   ├── core/                 #   settings (pydantic-settings), modelos SQLAlchemy,
 │   │   │                     #   esquemas Pydantic, enums (DocumentStatus, RefType...)
@@ -136,9 +123,6 @@ alerta-boe/
 ├── pyproject.toml            # sustituye al requirements.txt corrupto (uv/pip instalable)
 └── docs/                     # este documento, ADRs, guía de las APIs del BOE
 ```
-
-`UAT_Agents` queda intacto como proyecto aparte; de él se copian patrones (layout Next.js, panel de eventos,
-estructura de agentes), no código acoplado.
 
 ### 3.2 Modelo de datos (núcleo)
 
@@ -198,8 +182,8 @@ Un único módulo `boe/llm/` con:
 - **Salidas estructuradas** con Pydantic (`response_format` JSON + validación; `instructor` si conviene):
   los prompts actuales de `summarizer_groq.py` se conservan y se versionan en `boe/llm/prompts/`.
 - **Sin LangChain**: para resúmenes/clasificación/RAG no aporta y añade capas. **LangGraph solo para la
-  content factory**, donde sí hay un flujo multi-paso con validación y reintentos (y ya lo dominas por UAT_Agents).
-- Trazabilidad: cada salida LLM guarda modelo + versión de prompt + tokens (y opcionalmente Langfuse, como en UAT_Agents).
+  content factory**, donde sí hay un flujo multi-paso con validación y reintentos.
+- Trazabilidad: cada salida LLM guarda modelo + versión de prompt + tokens (y opcionalmente Langfuse).
 
 ### 3.5 API pública (`apps/api`, FastAPI async, `/v1`)
 
@@ -226,7 +210,7 @@ SSR/ISR de Next.js para que cada documento tenga URL indexable por Google — el
 
 ### 3.7 Content factory (LinkedIn / X / TikTok)
 
-Pipeline agentico (grafo LangGraph, patrón UAT_Agents), ejecutado en cron diario/semanal:
+Pipeline agentico (grafo LangGraph con roles y validación), ejecutado en cron diario/semanal:
 
 1. **Curador**: puntúa las publicaciones del día por "interés general" (impacto en bolsillos, ayudas, novedad, alcance) y elige 1-3 candidatas. Señales: rango de la norma, departamento, materias, tamaño del hilo de referencias.
 2. **Guionista**: por canal —
@@ -281,8 +265,8 @@ cuanto exista F1, porque solo necesita resúmenes buenos.
 | LLM volumen | Groq (Llama 3.3/4) vía SDK openai | Ya en uso, gratis/barato, rápido |
 | LLM fallback/razonamiento | OpenRouter (DeepSeek/Qwen) | Open source, un solo formato de API |
 | Embeddings | bge-m3 / multilingual-e5 (HF) | Multilingüe, open source, precalculado en worker |
-| Orquestación agentes | LangGraph **solo** en content factory | Flujo multi-paso real; conocido por UAT_Agents. Resto: SDK plano + Pydantic |
-| Frontend | Next.js 14 + Tailwind | SEO (SSR/ISR), patrón ya montado en UAT_Agents |
+| Orquestación agentes | LangGraph **solo** en content factory | Flujo multi-paso real con validación. Resto: SDK plano + Pydantic |
+| Frontend | Next.js 14 + Tailwind | SEO (SSR/ISR), ecosistema React (react-flow para el grafo, Remotion para vídeo) |
 | Vídeo | Remotion + edge-tts | Plantillas React reutilizables, TTS gratis es-ES |
 | Jobs | APScheduler en worker (→ arq/Celery si crece) | Volumen del BOE no justifica más |
 | Calidad | uv + ruff + pytest + Alembic + GH Actions | Estándar moderno, repo instalable |
