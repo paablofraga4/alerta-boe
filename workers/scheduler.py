@@ -11,15 +11,25 @@ Se usa APScheduler (no Celery): el volumen del BOE no justifica un broker.
 from __future__ import annotations
 
 import asyncio
+from datetime import date
 
 import structlog
+
+from boe.clients.base import BOEHttpClient
+from boe.ingest.pipeline import Pipeline
 
 log = structlog.get_logger(__name__)
 
 
-async def daily_ingest() -> None:
-    """Placeholder de la ingesta diaria (implementación real en F1)."""
-    log.info("daily_ingest_tick", note="pipeline pendiente de F1")
+async def daily_ingest(fecha: date | None = None) -> dict:
+    """Ingesta y enriquece el BOE del día. Job diario del scheduler."""
+    fecha = fecha or date.today()
+    yyyymmdd = fecha.strftime("%Y%m%d")
+    log.info("daily_ingest_start", fecha=yyyymmdd)
+    async with BOEHttpClient() as http:
+        counts = await Pipeline(http).run_full(yyyymmdd)
+    log.info("daily_ingest_done", fecha=yyyymmdd, **counts)
+    return counts
 
 
 async def main() -> None:

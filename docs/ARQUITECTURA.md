@@ -243,8 +243,8 @@ Pipeline agentico (grafo LangGraph con roles y validación), ejecutado en cron d
 
 | Fase | Entregable | Contenido |
 |---|---|---|
-| **F0 — Saneo** (base) | Repo instalable y arrancable | pyproject + uv, estructura monorepo, docker-compose con pgvector, Alembic con esquema nuevo, CI, migración de datos existentes |
-| **F1 — Ingesta** | Pipeline completo y backfill | Clientes httpx tipados de las 3 APIs, etapas fetch→classify→summarize→embed con `pipeline_state`, router LLM, backfill histórico |
+| **F0 — Saneo** (base) ✅ | Repo instalable y arrancable | pyproject + uv, estructura monorepo, docker-compose con pgvector, Alembic con esquema nuevo, CI, migración de datos existentes |
+| **F1 — Ingesta** ✅ | Pipeline completo y backfill | Clientes httpx tipados de las APIs, etapas fetch→text→classify→summarize→embed→link con `pipeline_state` idempotente/reanudable, router LLM, backfill histórico, grafo desde `analisis`, CLI (`boe ingest/backfill/enrich/status`) y worker diario |
 | **F2 — API v1** | API pública consumible | Endpoints de digest/documents/search híbrida/chat RAG con citas, API keys |
 | **F3 — Web** | Sustituto de Streamlit | Next.js: home "BOE de hoy", explorador, página de documento con chat. Se retira `frontend.py` |
 | **F4 — Grafo** | El diferenciador | Ingesta de `analisis` (referencias), tabla `references`, endpoints thread/timeline, visualización interactiva del hilo |

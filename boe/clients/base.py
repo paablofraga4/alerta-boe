@@ -91,6 +91,21 @@ class BOEHttpClient:
         except httpx.HTTPError as exc:
             raise BOEClientError(f"Fallo de red al consultar {url}: {exc}") from exc
 
+    async def get_html(self, url: str) -> str | None:
+        """Descarga texto HTML crudo (para la extracción de texto).
+
+        No reintenta ni lanza: devuelve None si no hay contenido utilizable, ya
+        que un documento sin HTML no debe romper la ingesta del resto.
+        """
+        client = self._require_client()
+        try:
+            resp = await client.get(url)
+        except httpx.HTTPError:
+            return None
+        if resp.status_code != 200 or not resp.text:
+            return None
+        return resp.text
+
 
 def as_list(value: Any) -> list[Any]:
     """Normaliza los campos del BOE que llegan como dict, lista, str o None.

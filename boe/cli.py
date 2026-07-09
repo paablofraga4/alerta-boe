@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
+from datetime import datetime
 
 from boe import __version__
 from boe.clients import BOEHttpClient, SummaryClient
@@ -45,6 +47,65 @@ def _cmd_fetch_summary(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_ingest(args: argparse.Namespace) -> None:
+    """Ingesta y enriquece un día completo (fetch → ... → grafo)."""
+    from boe.ingest.pipeline import Pipeline
+
+    async def _run() -> None:
+        async with BOEHttpClient() as http:
+            counts = await Pipeline(http).run_full(args.fecha, limit=args.limit)
+        print(f"Ingesta del {args.fecha}: {json.dumps(counts, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
+def _cmd_backfill(args: argparse.Namespace) -> None:
+    """Ingesta un rango de fechas y enriquece lo pendiente."""
+    from boe.ingest.pipeline import backfill, daterange_yyyymmdd
+
+    desde = datetime.strptime(args.desde, "%Y-%m-%d").date()
+    hasta = datetime.strptime(args.hasta, "%Y-%m-%d").date()
+    fechas = daterange_yyyymmdd(desde, hasta)
+
+    async def _run() -> None:
+        async with BOEHttpClient() as http:
+            counts = await backfill(http, fechas, limit=args.limit)
+        print(f"Backfill {args.desde}..{args.hasta} ({len(fechas)} días): "
+              f"{json.dumps(counts, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
+def _cmd_enrich(args: argparse.Namespace) -> None:
+    """Ejecuta las etapas de enriquecido sobre lo ya ingerido."""
+    from boe.ingest.pipeline import Pipeline
+
+    async def _run() -> None:
+        async with BOEHttpClient() as http:
+            counts = await Pipeline(http).run_all_enrich(limit=args.limit)
+        print(f"Enriquecido: {json.dumps(counts, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
+def _cmd_status(_: argparse.Namespace) -> None:
+    """Muestra el estado del pipeline por etapa."""
+    from boe.core.db import SessionLocal
+    from boe.ingest.repository import stage_counts
+
+    async def _run() -> None:
+        async with SessionLocal() as session:
+            summary = await stage_counts(session)
+        if not summary:
+            print("Pipeline vacío (aún no se ha ingerido nada).")
+            return
+        for stage, states in summary.items():
+            detail = ", ".join(f"{k}={v}" for k, v in states.items())
+            print(f"  {stage:16s} {detail}")
+
+    asyncio.run(_run())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="boe", description="AlertaBOE CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -58,6 +119,25 @@ def build_parser() -> argparse.ArgumentParser:
     fs.add_argument("fecha", help="Fecha en formato AAAAMMDD")
     fs.add_argument("--limit", type=int, default=10)
     fs.set_defaults(func=_cmd_fetch_summary)
+
+    ing = sub.add_parser("ingest", help="Ingesta y enriquece un día (AAAAMMDD)")
+    ing.add_argument("fecha", help="Fecha en formato AAAAMMDD")
+    ing.add_argument("--limit", type=int, default=500)
+    ing.set_defaults(func=_cmd_ingest)
+
+    bf = sub.add_parser("backfill", help="Ingesta un rango de fechas")
+    bf.add_argument("desde", help="Fecha inicial AAAA-MM-DD")
+    bf.add_argument("hasta", help="Fecha final AAAA-MM-DD")
+    bf.add_argument("--limit", type=int, default=500)
+    bf.set_defaults(func=_cmd_backfill)
+
+    en = sub.add_parser("enrich", help="Ejecuta el enriquecido sobre lo ingerido")
+    en.add_argument("--limit", type=int, default=500)
+    en.set_defaults(func=_cmd_enrich)
+
+    sub.add_parser("status", help="Estado del pipeline por etapa").set_defaults(
+        func=_cmd_status
+    )
 
     return parser
 
