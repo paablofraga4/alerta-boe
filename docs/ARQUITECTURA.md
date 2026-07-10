@@ -246,7 +246,7 @@ Pipeline agentico (grafo LangGraph con roles y validación), ejecutado en cron d
 | **F0 — Saneo** (base) ✅ | Repo instalable y arrancable | pyproject + uv, estructura monorepo, docker-compose con pgvector, Alembic con esquema nuevo, CI, migración de datos existentes |
 | **F1 — Ingesta** ✅ | Pipeline completo y backfill | Clientes httpx tipados de las APIs, etapas fetch→text→classify→summarize→embed→link con `pipeline_state` idempotente/reanudable, router LLM, backfill histórico, grafo desde `analisis`, CLI (`boe ingest/backfill/enrich/status`) y worker diario |
 | **F2 — API v1** ✅ | API pública consumible | Endpoints de digest/documents/thread/search híbrida (full-text español + pgvector con RRF)/chat RAG con citas obligatorias; auth por API key; índices GIN + HNSW |
-| **F3 — Web** | Sustituto de Streamlit | Next.js: home "BOE de hoy", explorador, página de documento con chat. Se retira `frontend.py` |
+| **F3 — Web** ✅ | Sustituto de Streamlit | Next.js 14 (App Router + Tailwind): home "BOE de hoy" (SSR), explorador de búsqueda, página de documento (SSR, SEO) con resumen, hilo normativo visual y chat. `frontend.py` queda marcado como legacy |
 | **F4 — Grafo** | El diferenciador | Ingesta de `analisis` (referencias), tabla `references`, endpoints thread/timeline, visualización interactiva del hilo |
 | **F5 — Content factory** | Publicación recurrente | Curador+Guionista+Validador, posts de texto LinkedIn/X con panel de aprobación; después Remotion+TTS para vídeo TikTok |
 | **F6 — Alertas y usuarios** | Retención | Login ligero, suscripciones por tema/región, email/Telegram digest |

@@ -45,5 +45,18 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.web
+    environment:
+      # SSR habla con la API por la red interna; el navegador, por localhost.
+      API_BASE: http://api:8000
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
 volumes:
   pgdata:

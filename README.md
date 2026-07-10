@@ -63,6 +63,22 @@ Postgres con pgvector en cada PR.
 Los endpoints `/v1` aceptan la cabecera `X-API-Key` (obligatoria si `API_KEYS`
 está definido; API abierta en desarrollo si no).
 
+### Web (Next.js 14)
+
+La interfaz nueva vive en `apps/web` y sustituye al Streamlit legacy (`frontend.py`):
+
+```bash
+cd apps/web
+cp .env.local.example .env.local   # apunta NEXT_PUBLIC_API_BASE a la API
+npm install
+npm run dev                        # http://localhost:3000
+```
+
+Páginas: **home "El BOE de hoy"** (SSR, con selector de fecha y destacados),
+**buscar** (búsqueda híbrida) y **documento** (SSR e indexable: resumen en claro,
+el **hilo normativo** de precedentes y derivadas, y un chat con citas). Con Docker
+levanta junto al resto vía `infra/docker-compose.yml`.
+
 ---
 
 ## 📜 Documentación legacy
