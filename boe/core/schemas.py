@@ -72,3 +72,78 @@ class ThreadOut(BaseModel):
     title: str
     anteriores: list[ReferenceOut] = []
     posteriores: list[ReferenceOut] = []
+
+
+# ─── Búsqueda ────────────────────────────────────────────────────────────────
+
+
+class SearchRequest(BaseModel):
+    query: str = ""
+    fecha: date | None = None
+    desde: date | None = None
+    hasta: date | None = None
+    scope: Scope | None = None
+    topic: str | None = None
+    region: str | None = None
+    departamento: str | None = None
+    limit: int = 20
+
+
+class SearchHitOut(BaseModel):
+    document: DocumentOut
+    score: float
+    matched: list[str] = []
+
+
+class SearchResponse(BaseModel):
+    query: str
+    total: int
+    results: list[SearchHitOut] = []
+
+
+# ─── Digest del día ──────────────────────────────────────────────────────────
+
+
+class DigestItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    boe_id: str
+    title: str
+    departamento: str | None = None
+    scope: Scope
+    short: str | None = None       # resumen breve, si existe
+    url_html: str | None = None
+
+
+class DigestGroup(BaseModel):
+    scope: Scope
+    count: int
+    items: list[DigestItem] = []
+
+
+class DigestOut(BaseModel):
+    fecha: date
+    total: int
+    highlights: list[DigestItem] = []
+    groups: list[DigestGroup] = []
+
+
+# ─── Chat RAG ────────────────────────────────────────────────────────────────
+
+
+class ChatRequest(BaseModel):
+    message: str
+    fecha: date | None = None
+    scope: Scope | None = None
+    top_k: int | None = None
+
+
+class Citation(BaseModel):
+    boe_id: str
+    title: str
+    url_html: str | None = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    citations: list[Citation] = []

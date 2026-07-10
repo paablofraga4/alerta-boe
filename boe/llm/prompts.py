@@ -50,6 +50,35 @@ def summary_messages(texto: str, titulo: str) -> list[Message]:
     ]
 
 
+def rag_messages(question: str, contexts: list[tuple[str, str, str]]) -> list[Message]:
+    """Chat RAG con citas OBLIGATORIAS.
+
+    `contexts` es una lista de (boe_id, título, texto). El sistema exige que la
+    respuesta se apoye solo en el contexto y cite los boe_id entre corchetes,
+    para evitar alucinaciones en un dominio legal.
+    """
+    bloques = "\n\n".join(
+        f"[{boe_id}] {titulo}\n{texto[:1500]}" for boe_id, titulo, texto in contexts
+    )
+    return [
+        {
+            "role": "system",
+            "content": (
+                "Eres un asistente que explica el BOE a ciudadanos y autónomos en "
+                "lenguaje claro. Responde ÚNICAMENTE con la información del contexto. "
+                "Si el contexto no basta, dilo con honestidad. Cita siempre las "
+                "fuentes usadas con su identificador entre corchetes, p. ej. "
+                "[BOE-A-2024-0001]. No inventes normas ni cifras. No des "
+                "asesoramiento legal vinculante."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Contexto:\n{bloques}\n\nPregunta: {question}",
+        },
+    ]
+
+
 class ClassificationOutput(BaseModel):
     """Clasificación temática multi-etiqueta."""
 

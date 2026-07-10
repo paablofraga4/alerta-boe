@@ -47,18 +47,11 @@ async def session_factory() -> async_sessionmaker:
         await engine.dispose()
         pytest.skip("No hay Postgres disponible para tests de integración")
 
+    # Recrea el esquema desde los modelos para que coincida siempre (y aísla tests).
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-        # Limpia entre tests para aislarlos.
-        await conn.execute(
-            text(
-                "TRUNCATE documents, \"references\", summaries, embeddings, "
-                "topics, regions, pipeline_state, document_topics, "
-                "document_regions, content_posts, document_versions "
-                "RESTART IDENTITY CASCADE"
-            )
-        )
 
     yield async_sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
     await engine.dispose()

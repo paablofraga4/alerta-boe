@@ -18,6 +18,7 @@ from datetime import date, datetime
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Column,
+    Computed,
     Date,
     DateTime,
     Enum,
@@ -31,7 +32,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from boe.core.config import settings
@@ -117,6 +118,17 @@ class Document(Base, TimestampMixin):
     # JSON crudo del sumario tal cual lo devolvió el BOE: reprocesable sin re-fetch.
     raw: Mapped[dict | None] = mapped_column(JSONB)
 
+    # Vector de texto completo (español) para la búsqueda full-text. Columna
+    # generada por Postgres a partir de título + cuerpo; se mantiene sola.
+    search_vector = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('spanish', coalesce(title, '') || ' ' || coalesce(full_text, ''))",
+            persisted=True,
+        ),
+        nullable=True,
+    )
+
     # Relaciones
     topics: Mapped[list[Topic]] = relationship(
         secondary=document_topics, back_populates="documents"
@@ -136,6 +148,7 @@ class Document(Base, TimestampMixin):
 
     __table_args__ = (
         Index("ix_documents_published_scope", "published_at", "scope"),
+        Index("ix_documents_search", "search_vector", postgresql_using="gin"),
     )
 
 
@@ -241,6 +254,16 @@ class Embedding(Base):
     )
 
     document: Mapped[Document] = relationship(back_populates="embedding")
+
+    # Índice HNSW para búsqueda vectorial por distancia coseno.
+    __table_args__ = (
+        Index(
+            "ix_embeddings_hnsw",
+            "vector",
+            postgresql_using="hnsw",
+            postgresql_ops={"vector": "vector_cosine_ops"},
+        ),
+    )
 
 
 class Topic(Base):

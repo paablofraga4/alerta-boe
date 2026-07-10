@@ -54,9 +54,19 @@ class Settings(BaseSettings):
     api_cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
 
+    # API keys válidas (coma-separadas). Vacío = API abierta (solo desarrollo).
+    api_keys: str = ""
+
+    # Recuperación para el chat RAG.
+    chat_top_k: int = 6
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]
+
+    @property
+    def api_keys_set(self) -> set[str]:
+        return {k.strip() for k in self.api_keys.split(",") if k.strip()}
 
     @property
     def sync_database_url(self) -> str:

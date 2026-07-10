@@ -48,6 +48,21 @@ pytest -q                     # tests (parsing del BOE, router LLM, cliente HTTP
 El CI (GitHub Actions) ejecuta lint, tests y aplica las migraciones sobre un
 Postgres con pgvector en cada PR.
 
+### API v1 (endpoints principales)
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/health`, `/health/db` | Salud del servicio y de la DB |
+| GET | `/v1/digest/{fecha}` | El BOE del día: agrupado por ámbito, resumido y con destacados |
+| GET | `/v1/documents` | Listado con filtros (fecha, departamento) |
+| GET | `/v1/documents/{boe_id}` | Detalle de una publicación |
+| GET | `/v1/documents/{boe_id}/thread` | El hilo normativo: precedentes y derivadas |
+| POST | `/v1/search` | Búsqueda híbrida (full-text español + vectorial, RRF) con filtros |
+| POST | `/v1/chat` | Chat RAG con citas obligatorias a los `boe_id` |
+
+Los endpoints `/v1` aceptan la cabecera `X-API-Key` (obligatoria si `API_KEYS`
+está definido; API abierta en desarrollo si no).
+
 ---
 
 ## 📜 Documentación legacy
