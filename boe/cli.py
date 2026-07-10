@@ -88,6 +88,42 @@ def _cmd_enrich(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_content_generate(args: argparse.Namespace) -> None:
+    """Genera borradores de contenido para las mejores publicaciones de un día."""
+    from datetime import datetime as _dt
+
+    from boe.content.pipeline import ContentPipeline
+
+    fecha = _dt.strptime(args.fecha, "%Y-%m-%d").date()
+
+    async def _run() -> None:
+        ids = await ContentPipeline().generate_for_date(fecha, top_n=args.top)
+        print(f"Generados {len(ids)} borradores para {args.fecha}: {ids}")
+
+    asyncio.run(_run())
+
+
+def _cmd_content_list(args: argparse.Namespace) -> None:
+    """Lista las piezas de contenido en cola."""
+    from sqlalchemy import select
+
+    from boe.core.db import SessionLocal
+    from boe.core.models import ContentPost
+
+    async def _run() -> None:
+        async with SessionLocal() as session:
+            stmt = select(ContentPost).order_by(ContentPost.id.desc()).limit(args.limit)
+            posts = (await session.execute(stmt)).scalars().all()
+        if not posts:
+            print("No hay contenido en cola.")
+            return
+        for p in posts:
+            print(f"  #{p.id} [{p.channel.value:8s}] {p.status.value:9s} "
+                  f"score={p.interest_score} :: {(p.script or '')[:70]!r}")
+
+    asyncio.run(_run())
+
+
 def _cmd_status(_: argparse.Namespace) -> None:
     """Muestra el estado del pipeline por etapa."""
     from boe.core.db import SessionLocal
@@ -138,6 +174,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Estado del pipeline por etapa").set_defaults(
         func=_cmd_status
     )
+
+    cg = sub.add_parser("content-generate", help="Genera borradores de contenido de un día")
+    cg.add_argument("fecha", help="Fecha AAAA-MM-DD")
+    cg.add_argument("--top", type=int, default=3, help="Nº de publicaciones a cubrir")
+    cg.set_defaults(func=_cmd_content_generate)
+
+    cl = sub.add_parser("content-list", help="Lista el contenido en cola")
+    cl.add_argument("--limit", type=int, default=20)
+    cl.set_defaults(func=_cmd_content_list)
 
     return parser
 

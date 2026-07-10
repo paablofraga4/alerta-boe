@@ -13,7 +13,7 @@ from boe import __version__
 from boe.core.config import settings
 
 from .deps import require_api_key
-from .routers import chat, digest, documents, health, search
+from .routers import chat, content, digest, documents, health, search
 
 app = FastAPI(
     title="AlertaBOE API",
@@ -36,3 +36,4 @@ app.include_router(documents.router, prefix="/v1", tags=["documents"], dependenc
 app.include_router(digest.router, prefix="/v1", tags=["digest"], dependencies=_v1)
 app.include_router(search.router, prefix="/v1", tags=["search"], dependencies=_v1)
 app.include_router(chat.router, prefix="/v1", tags=["chat"], dependencies=_v1)
+app.include_router(content.router, prefix="/v1", tags=["content"], dependencies=_v1)

@@ -5,11 +5,17 @@ Separan la representación externa (lo que devuelve `/v1`) del modelo ORM.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from boe.core.enums import ReferenceDirection, ReferenceType, Scope
+from boe.core.enums import (
+    ContentChannel,
+    ContentStatus,
+    ReferenceDirection,
+    ReferenceType,
+    Scope,
+)
 
 
 class TopicOut(BaseModel):
@@ -147,3 +153,26 @@ class Citation(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     citations: list[Citation] = []
+
+
+# ─── Fábrica de contenido ────────────────────────────────────────────────────
+
+
+class ContentPostOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    boe_id: str | None = None
+    channel: ContentChannel
+    status: ContentStatus
+    script: str | None = None
+    interest_score: float | None = None
+    asset_path: str | None = None
+    external_id: str | None = None
+    published_at: datetime | None = None
+    metrics: dict | None = None
+
+
+class ContentListResponse(BaseModel):
+    total: int
+    posts: list[ContentPostOut] = []

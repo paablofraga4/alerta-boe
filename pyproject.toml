@@ -41,6 +41,10 @@ embeddings = [
 worker = [
     "apscheduler>=3.11",
 ]
+# Fábrica de contenido: TTS para la narración de los vídeos (voces es-ES gratis).
+video = [
+    "edge-tts>=6.1",
+]
 dev = [
     "ruff>=0.9",
     "pytest>=8.3",

@@ -59,6 +59,8 @@ Postgres con pgvector en cada PR.
 | GET | `/v1/documents/{boe_id}/thread` | El hilo normativo: precedentes y derivadas |
 | POST | `/v1/search` | Búsqueda híbrida (full-text español + vectorial, RRF) con filtros |
 | POST | `/v1/chat` | Chat RAG con citas obligatorias a los `boe_id` |
+| GET | `/v1/content` | Cola de la fábrica de contenido (borradores/aprobados…) |
+| POST | `/v1/content/{id}/approve\|reject\|publish` | Aprobación humana y publicación |
 
 Los endpoints `/v1` aceptan la cabecera `X-API-Key` (obligatoria si `API_KEYS`
 está definido; API abierta en desarrollo si no).
@@ -78,6 +80,23 @@ Páginas: **home "El BOE de hoy"** (SSR, con selector de fecha y destacados),
 **buscar** (búsqueda híbrida) y **documento** (SSR e indexable: resumen en claro,
 el **hilo normativo** de precedentes y derivadas, y un chat con citas). Con Docker
 levanta junto al resto vía `infra/docker-compose.yml`.
+
+### Fábrica de contenido (redes)
+
+Genera borradores de posts para LinkedIn/X/TikTok a partir de las publicaciones
+más relevantes del día, con aprobación humana antes de publicar:
+
+```bash
+boe content-generate 2024-07-09   # curar → guionizar → validar → encolar (draft)
+boe content-list                  # ver la cola
+# aprobar/publicar desde la web o vía POST /v1/content/{id}/approve|publish
+```
+
+El curador puntúa el interés general (ámbito, rango, temas, tamaño del hilo); el
+guionista adapta la pieza a cada canal; el validador comprueba fidelidad a la
+fuente, cita del `boe_id` y disclaimer. Para vídeo (TikTok) se generan subtítulos
+(SRT) desde el guion y la narración con `edge-tts` (extra `[video]`); el mp4 final
+lo compone una plantilla Remotion a partir de las props emitidas.
 
 ---
 
