@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     # Recuperación para el chat RAG.
     chat_top_k: int = 6
 
+    # ─── Alertas (F6) ────────────────────────────────────────────────────────
+    # Email (SMTP). Si falta config, el notificador email funciona en dry-run.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from: str = "AlertaBOE <no-reply@alertaboe.app>"
+    # Telegram. Si falta el token, el notificador Telegram va en dry-run.
+    telegram_bot_token: str | None = None
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]

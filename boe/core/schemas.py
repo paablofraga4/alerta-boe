@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from boe.core.enums import (
     ContentChannel,
     ContentStatus,
+    NotificationChannel,
     ReferenceDirection,
     ReferenceType,
     Scope,
@@ -176,3 +177,36 @@ class ContentPostOut(BaseModel):
 class ContentListResponse(BaseModel):
     total: int
     posts: list[ContentPostOut] = []
+
+
+# ─── Alertas / suscripciones (F6) ────────────────────────────────────────────
+
+
+class SubscriptionCreate(BaseModel):
+    email: str
+    channel: NotificationChannel = NotificationChannel.EMAIL
+    # Destino de entrega: email o chat_id de Telegram. Si falta y el canal es
+    # email, se usa `email`.
+    destination: str | None = None
+    topic_slug: str | None = None
+    region_name: str | None = None
+    scope: Scope | None = None
+    keyword: str | None = None
+
+
+class SubscriptionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    channel: NotificationChannel
+    destination: str
+    topic_slug: str | None = None
+    region_name: str | None = None
+    scope: Scope | None = None
+    keyword: str | None = None
+    active: bool
+
+
+class SubscriptionListResponse(BaseModel):
+    total: int
+    subscriptions: list[SubscriptionOut] = []

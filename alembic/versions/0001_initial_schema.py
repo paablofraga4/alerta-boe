@@ -33,5 +33,20 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    bind = op.get_bind()
-    Base.metadata.drop_all(bind=bind)
+    import sqlalchemy as sa
+
+    # Drop de tablas con CASCADE (orden hijo→padre) y luego de los tipos ENUM
+    # propios. Evita el error de "cannot drop type ... depends on it" de
+    # drop_all y no toca tipos de otros esquemas (seguro en Supabase).
+    for table in reversed(Base.metadata.sorted_tables):
+        op.execute(f'DROP TABLE IF EXISTS "{table.name}" CASCADE')
+
+    enum_names: set[str] = set()
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            if isinstance(column.type, sa.Enum) and column.type.name:
+                enum_names.add(column.type.name)
+    for name in sorted(enum_names):
+        op.execute(f'DROP TYPE IF EXISTS "{name}" CASCADE')
+
+    op.execute("DROP EXTENSION IF EXISTS vector")

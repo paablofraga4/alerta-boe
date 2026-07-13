@@ -22,14 +22,19 @@ log = structlog.get_logger(__name__)
 
 
 async def daily_ingest(fecha: date | None = None) -> dict:
-    """Ingesta y enriquece el BOE del día. Job diario del scheduler."""
+    """Ingesta y enriquece el BOE del día y luego envía las alertas casadas."""
     fecha = fecha or date.today()
     yyyymmdd = fecha.strftime("%Y%m%d")
     log.info("daily_ingest_start", fecha=yyyymmdd)
     async with BOEHttpClient() as http:
         counts = await Pipeline(http).run_full(yyyymmdd)
-    log.info("daily_ingest_done", fecha=yyyymmdd, **counts)
-    return counts
+
+    # Tras enriquecer, cruza con las suscripciones y notifica.
+    from boe.alerts.service import run_for_date
+
+    alerts = await run_for_date(fecha)
+    log.info("daily_ingest_done", fecha=yyyymmdd, **counts, **alerts)
+    return {**counts, **alerts}
 
 
 async def main() -> None:

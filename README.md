@@ -61,6 +61,7 @@ Postgres con pgvector en cada PR.
 | POST | `/v1/chat` | Chat RAG con citas obligatorias a los `boe_id` |
 | GET | `/v1/content` | Cola de la fábrica de contenido (borradores/aprobados…) |
 | POST | `/v1/content/{id}/approve\|reject\|publish` | Aprobación humana y publicación |
+| POST/GET/DELETE | `/v1/subscriptions` | Alertas por tema/región/ámbito/palabra clave (email o Telegram) |
 
 Los endpoints `/v1` aceptan la cabecera `X-API-Key` (obligatoria si `API_KEYS`
 está definido; API abierta en desarrollo si no).

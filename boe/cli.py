@@ -124,6 +124,21 @@ def _cmd_content_list(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_alerts_run(args: argparse.Namespace) -> None:
+    """Casa los documentos de un día con las suscripciones y envía las alertas."""
+    from datetime import datetime as _dt
+
+    from boe.alerts.service import run_for_date
+
+    fecha = _dt.strptime(args.fecha, "%Y-%m-%d").date()
+
+    async def _run() -> None:
+        result = await run_for_date(fecha)
+        print(f"Alertas {args.fecha}: {json.dumps(result, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
 def _cmd_status(_: argparse.Namespace) -> None:
     """Muestra el estado del pipeline por etapa."""
     from boe.core.db import SessionLocal
@@ -183,6 +198,10 @@ def build_parser() -> argparse.ArgumentParser:
     cl = sub.add_parser("content-list", help="Lista el contenido en cola")
     cl.add_argument("--limit", type=int, default=20)
     cl.set_defaults(func=_cmd_content_list)
+
+    ar = sub.add_parser("alerts-run", help="Envía las alertas casadas de un día")
+    ar.add_argument("fecha", help="Fecha AAAA-MM-DD")
+    ar.set_defaults(func=_cmd_alerts_run)
 
     return parser
 

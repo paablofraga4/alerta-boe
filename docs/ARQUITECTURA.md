@@ -249,7 +249,7 @@ Pipeline agentico (grafo LangGraph con roles y validación), ejecutado en cron d
 | **F3 — Web** ✅ | Sustituto de Streamlit | Next.js 14 (App Router + Tailwind): home "BOE de hoy" (SSR), explorador de búsqueda, página de documento (SSR, SEO) con resumen, hilo normativo visual y chat. `frontend.py` queda marcado como legacy |
 | **F4 — Grafo** | El diferenciador | Ingesta de `analisis` (referencias), tabla `references`, endpoints thread/timeline, visualización interactiva del hilo |
 | **F5 — Content factory** ✅ | Publicación recurrente | Curador (scoring de interés) → Guionista (LinkedIn/X/TikTok) → Validador (anti-alucinación con citas); cola `content_posts` con aprobación humana vía `/v1/content` y **panel web `/contenido`**; publicadores (dry-run + interfaz real); **vídeo end-to-end**: guion→SRT + narración edge-tts + **plantilla Remotion** (`apps/video`) que renderiza el mp4 vertical |
-| **F6 — Alertas y usuarios** | Retención | Login ligero, suscripciones por tema/región, email/Telegram digest |
+| **F6 — Alertas y usuarios** ✅ | Retención | Usuarios ligeros por email, suscripciones por tema/región/ámbito/palabra clave, matcher idempotente y notificadores email (SMTP) y Telegram (con dry-run); endpoints `/v1/subscriptions` y job diario en el worker |
 
 Cada fase termina con algo usable en producción. F1-F2 pueden solaparse; F5 (texto) puede adelantarse en
 cuanto exista F1, porque solo necesita resúmenes buenos.

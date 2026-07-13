@@ -41,6 +41,8 @@ from boe.core.enums import (
     ContentChannel,
     ContentStatus,
     DocumentKind,
+    NotificationChannel,
+    NotificationStatus,
     PipelineStage,
     ReferenceDirection,
     ReferenceType,
@@ -352,3 +354,78 @@ class ContentPost(Base, TimestampMixin):
     metrics: Mapped[dict | None] = mapped_column(JSONB)
 
     document: Mapped[Document | None] = relationship()
+
+
+# ─── Usuarios y alertas (F6) ─────────────────────────────────────────────────
+
+
+class User(Base, TimestampMixin):
+    """Usuario ligero, identificado por email (sin contraseña en el MVP)."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+
+    subscriptions: Mapped[list[Subscription]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class Subscription(Base, TimestampMixin):
+    """Suscripción a alertas: filtros + canal de entrega.
+
+    Un documento hace 'match' si cumple TODOS los filtros no nulos (tema, región,
+    ámbito, palabra clave). Al menos uno debe estar definido.
+    """
+
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+    # Filtros (todos opcionales, se combinan en AND sobre los definidos).
+    topic_slug: Mapped[str | None] = mapped_column(String(128), index=True)
+    region_name: Mapped[str | None] = mapped_column(String(128))
+    scope: Mapped[Scope | None] = mapped_column(Enum(Scope, name="subscription_scope"))
+    keyword: Mapped[str | None] = mapped_column(String(255))
+
+    # Entrega.
+    channel: Mapped[NotificationChannel] = mapped_column(
+        Enum(NotificationChannel, name="notification_channel")
+    )
+    destination: Mapped[str] = mapped_column(String(320))  # email o chat_id de Telegram
+    active: Mapped[bool] = mapped_column(default=True, index=True)
+
+    user: Mapped[User] = relationship(back_populates="subscriptions")
+
+
+class Notification(Base):
+    """Registro de entrega, para no notificar dos veces el mismo documento."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    subscription_id: Mapped[int] = mapped_column(
+        ForeignKey("subscriptions.id", ondelete="CASCADE"), index=True
+    )
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), index=True
+    )
+    channel: Mapped[NotificationChannel] = mapped_column(
+        Enum(NotificationChannel, name="notification_channel_delivery")
+    )
+    status: Mapped[NotificationStatus] = mapped_column(
+        Enum(NotificationStatus, name="notification_status"),
+        default=NotificationStatus.PENDING,
+    )
+    error: Mapped[str | None] = mapped_column(Text)
+    sent_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint("subscription_id", "document_id", name="uq_notification"),
+    )

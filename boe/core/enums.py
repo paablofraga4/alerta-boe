@@ -109,3 +109,18 @@ class ContentStatus(StrEnum):
     PUBLISHED = "published"
     REJECTED = "rejected"
     FAILED = "failed"
+
+
+class NotificationChannel(StrEnum):
+    """Canal de entrega de una alerta al usuario."""
+
+    EMAIL = "email"
+    TELEGRAM = "telegram"
+
+
+class NotificationStatus(StrEnum):
+    """Estado de envío de una notificación."""
+
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
