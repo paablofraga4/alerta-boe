@@ -81,10 +81,21 @@ class Settings(BaseSettings):
 
     @property
     def sync_database_url(self) -> str:
-        """URL síncrona para Alembic (psycopg)."""
-        return self.database_url.replace("+asyncpg", "+psycopg").replace(
-            "postgresql://", "postgresql+psycopg://"
-        )
+        """URL síncrona para Alembic (psycopg).
+
+        Quita el parámetro `ssl` de la query si lo hubiera: es de asyncpg;
+        psycopg negocia SSL solo (sslmode=prefer) y no entiende `ssl`.
+        """
+        from sqlalchemy.engine.url import make_url
+
+        url = make_url(self.database_url)
+        if url.drivername.endswith("asyncpg"):
+            url = url.set(drivername="postgresql+psycopg")
+        elif url.drivername == "postgresql":
+            url = url.set(drivername="postgresql+psycopg")
+        if "ssl" in url.query:
+            url = url.difference_update_query(["ssl"])
+        return url.render_as_string(hide_password=False)
 
 
 @lru_cache

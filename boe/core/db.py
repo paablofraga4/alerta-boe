@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -22,11 +23,28 @@ class Base(DeclarativeBase):
     """Base declarativa común a todos los modelos."""
 
 
-engine = create_async_engine(
-    settings.database_url,
-    echo=settings.db_echo,
-    pool_pre_ping=True,
-)
+def _build_engine():
+    """Crea el engine async, activando SSL para hosts gestionados (Supabase).
+
+    asyncpg no usa SSL por defecto y Supabase lo exige, así que se activa cuando
+    el host es de Supabase o la URL trae `?ssl=require`. El parámetro `ssl` se
+    saca de la query (asyncpg lo recibe por connect_args, no por la URL).
+    """
+    url = make_url(settings.database_url)
+    host = url.host or ""
+    ssl_flag = str(url.query.get("ssl", "")).lower()
+    wants_ssl = ssl_flag in {"require", "true", "1"} or "supabase" in host
+
+    if "ssl" in url.query:
+        url = url.difference_update_query(["ssl"])
+
+    connect_args = {"ssl": True} if wants_ssl else {}
+    return create_async_engine(
+        url, echo=settings.db_echo, pool_pre_ping=True, connect_args=connect_args
+    )
+
+
+engine = _build_engine()
 
 SessionLocal = async_sessionmaker(
     bind=engine,

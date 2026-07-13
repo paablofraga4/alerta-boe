@@ -21,13 +21,17 @@ valen igual).
 **Cadena de conexión** (para `DATABASE_URL` del backend). Copia la contraseña
 desde el dashboard → *Project Settings → Database* (o resetéala allí):
 
+Usa el botón **Connect** de Supabase → **Session pooler** (funciona desde Render).
+Formato (sustituye `<PASSWORD>`; el host `aws-0-…` cópialo tal cual salga):
+
 ```
-postgresql+asyncpg://postgres:<PASSWORD>@db.agpcrbspxbrgdnciyuxa.supabase.co:5432/postgres
+postgresql+asyncpg://postgres.agpcrbspxbrgdnciyuxa:<PASSWORD>@aws-0-eu-west-3.pooler.supabase.com:5432/postgres
 ```
 
-> Usa la conexión **directa** (puerto 5432) para el contenedor persistente. Si
-> usas el *pooler* en modo transacción (6543), añade `?statement_cache_size=0`
-> por compatibilidad con asyncpg/PgBouncer.
+> **SSL**: no añadas `?sslmode=require` ni `?ssl=...` a la URL. El código activa
+> SSL solo para hosts de Supabase (asyncpg) y Alembic negocia SSL vía psycopg.
+> Deja la cadena **limpia**. Si por lo que sea la pones con `?ssl=require`,
+> también funciona (el backend la normaliza).
 
 ### ⚠️ Seguridad: Row Level Security (RLS)
 
