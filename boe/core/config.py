@@ -89,9 +89,9 @@ class Settings(BaseSettings):
         from sqlalchemy.engine.url import make_url
 
         url = make_url(self.database_url)
-        if url.drivername.endswith("asyncpg"):
-            url = url.set(drivername="postgresql+psycopg")
-        elif url.drivername == "postgresql":
+        # Cualquier URL de Postgres (postgresql://, +asyncpg, postgres://) usa
+        # psycopg v3 para Alembic (psycopg2 no está instalado).
+        if url.get_backend_name() == "postgresql":
             url = url.set(drivername="postgresql+psycopg")
         if "ssl" in url.query:
             url = url.difference_update_query(["ssl"])

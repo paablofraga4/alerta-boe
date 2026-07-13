@@ -31,6 +31,13 @@ def _build_engine():
     saca de la query (asyncpg lo recibe por connect_args, no por la URL).
     """
     url = make_url(settings.database_url)
+
+    # Fuerza el driver async. Aunque la DATABASE_URL venga como `postgresql://`
+    # (lo que da Supabase por defecto), usamos asyncpg — si no, SQLAlchemy
+    # intentaría psycopg2 (no instalado) y fallaría.
+    if url.get_backend_name() == "postgresql" and url.get_driver_name() != "asyncpg":
+        url = url.set(drivername="postgresql+asyncpg")
+
     host = url.host or ""
     ssl_flag = str(url.query.get("ssl", "")).lower()
     wants_ssl = ssl_flag in {"require", "true", "1"} or "supabase" in host
