@@ -57,27 +57,44 @@ La web (`apps/web`) es una app Next.js 14 lista para Vercel:
    - `NEXT_PUBLIC_API_KEY` = una de las `API_KEYS` del backend (si activas auth).
 3. Deploy. Next detecta el framework solo (`npm run build`).
 
-## 3. Backend Python (API + worker) — Render
+## 3. Backend — todo gratis (API en Render + ingesta en GitHub Actions)
 
-`infra/render.yaml` es un blueprint listo:
+Render **no tiene plan gratis para workers**, así que separamos:
 
-1. Render → *New → Blueprint* → apunta a este repo.
-2. Crea dos servicios: `alertaboe-api` (web, Docker `infra/Dockerfile.api`) y
-   `alertaboe-worker` (worker, Docker `infra/Dockerfile.worker`).
-3. Rellena los secretos (`sync:false`): `DATABASE_URL` (Supabase, paso 1),
-   `API_CORS_ORIGINS` (tu dominio Vercel), `GROQ_API_KEY`, `OPENROUTER_API_KEY`,
-   y para alertas `SMTP_*` / `TELEGRAM_BOT_TOKEN`.
-4. La API aplica `alembic upgrade head` al arrancar (idempotente: ya está en 0003).
+### 3a. API — Render (servicio web, plan free)
 
-### Notas de recursos
+`infra/render.yaml` despliega solo la API:
 
-- **Embeddings**: el worker instala el extra `[embeddings]` (sentence-transformers
-  + torch), que pesa. En planes pequeños puede quedarse sin memoria. Si no
-  necesitas búsqueda vectorial de inmediato, quita `embeddings` del
-  `Dockerfile.worker`: la etapa EMBEDDED se marca SKIPPED y la búsqueda funciona
-  en modo full-text. Actívalo cuando tengas plan con RAM suficiente.
-- **Ingesta programada**: el worker corre APScheduler (cron interno, 08:30). En
-  alternativa serverless, un Vercel Cron puede golpear un endpoint de ingesta.
+1. Render → *New → Blueprint* → apunta a este repo. Crea `alertaboe-api`
+   (web, Docker `infra/Dockerfile.api`, **plan free**, sin tarjeta).
+2. Rellena los secretos (`sync:false`): `DATABASE_URL` (Supabase, paso 1),
+   `API_CORS_ORIGINS` (tu dominio Vercel), `GROQ_API_KEY`, opcional
+   `OPENAI_API_KEY` (backup del LLM) y `API_KEYS`.
+3. La API aplica `alembic upgrade head` al arrancar (idempotente).
+4. Copia la URL que te da Render (p. ej. `https://alertaboe-api.onrender.com`)
+   para el paso 2 (Vercel).
+
+> El plan free "duerme" la API tras ~15 min de inactividad; la primera petición
+> tras dormir tarda unos segundos (cold start). Suficiente para empezar.
+
+### 3b. Ingesta diaria — GitHub Actions (gratis)
+
+`.github/workflows/ingest.yml` corre la ingesta+enriquecido+alertas cada día a
+las 07:00 UTC (y a demanda desde *Actions → Run workflow*). Configura los
+**secrets del repo** (GitHub → *Settings → Secrets and variables → Actions*):
+
+- `DATABASE_URL` (el de Supabase, paso 1) y `GROQ_API_KEY` (mínimo).
+- Opcionales: `OPENAI_API_KEY` (backup LLM), `SMTP_*`, `TELEGRAM_BOT_TOKEN`.
+
+Así no necesitas ningún worker de pago. Si prefieres un worker siempre-encendido
+en Render, el `render.yaml` incluye el bloque comentado (requiere plan de pago).
+
+### Nota sobre embeddings
+
+La búsqueda vectorial usa `sentence-transformers` (pesado). Ni la API de Render
+free ni el runner de Actions lo instalan por defecto: la etapa EMBEDDED se marca
+SKIPPED y la **búsqueda funciona en modo full-text**. Actívalo (extra
+`[embeddings]`) cuando tengas un host con RAM suficiente.
 
 ## 4. Alternativas de host del backend
 
@@ -86,12 +103,14 @@ La web (`apps/web`) es una app Next.js 14 lista para Vercel:
 
 ## Checklist de variables de entorno
 
-| Variable | Dónde | Para qué |
+| Variable | Dónde se pone | Para qué |
 |---|---|---|
-| `DATABASE_URL` | API + worker | Conexión a Supabase (asyncpg) |
-| `API_KEYS` | API (y web) | Auth de `/v1` por `X-API-Key` |
-| `API_CORS_ORIGINS` | API | Permitir el dominio de la web |
-| `GROQ_API_KEY` / `OPENROUTER_API_KEY` | API + worker | LLM (resúmenes, chat, contenido) |
-| `SMTP_*` | worker | Alertas por email |
-| `TELEGRAM_BOT_TOKEN` | worker | Alertas por Telegram |
-| `NEXT_PUBLIC_API_BASE` / `API_BASE` | web | URL de la API |
+| `DATABASE_URL` | Render (API) **+** GitHub Actions (secret) | Conexión a Supabase (asyncpg) |
+| `GROQ_API_KEY` | Render (API) **+** GitHub Actions (secret) | LLM (resúmenes, chat, contenido) |
+| `API_CORS_ORIGINS` | Render (API) | Permitir el dominio de la web |
+| `OPENAI_API_KEY` | Render (API) + Actions | LLM de reserva/backup (opcional) |
+| `API_KEYS` | Render (API) | Auth de `/v1` por `X-API-Key` (opcional) |
+| `SMTP_*` | GitHub Actions (secret) | Alertas por email (opcional) |
+| `TELEGRAM_BOT_TOKEN` | GitHub Actions (secret) | Alertas por Telegram (opcional) |
+| `NEXT_PUBLIC_API_BASE` / `API_BASE` | Vercel (web) | URL de la API de Render |
+| `NEXT_PUBLIC_API_KEY` | Vercel (web) | Igual a `API_KEYS` si activas auth (opcional) |

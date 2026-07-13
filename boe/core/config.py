@@ -35,16 +35,17 @@ class Settings(BaseSettings):
 
     # ─── LLM ─────────────────────────────────────────────────────────────────
     llm_primary_provider: str = "groq"
-    llm_fallback_provider: str | None = "openrouter"
+    llm_fallback_provider: str | None = "openai"
 
     groq_api_key: str | None = None
     groq_model: str = "llama-3.3-70b-versatile"
 
-    openrouter_api_key: str | None = None
-    openrouter_model: str = "deepseek/deepseek-chat"
-
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
+
+    # OpenRouter sigue soportado como proveedor alternativo si se configura.
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "deepseek/deepseek-chat"
 
     # ─── Embeddings ──────────────────────────────────────────────────────────
     embeddings_model: str = "BAAI/bge-m3"
