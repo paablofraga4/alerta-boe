@@ -1,0 +1,49 @@
+# Blueprint de Render para el backend Python (API + worker) de AlertaBOE.
+# La web va en Vercel y la base de datos en Supabase; esto es solo el backend.
+#
+# Uso: en Render → New → Blueprint → apuntar a este repo. Rellenar los secretos
+# marcados como sync:false (DATABASE_URL de Supabase, claves LLM, etc.).
+services:
+  # API pública (FastAPI). Aplica migraciones al arrancar.
+  - type: web
+    name: alertaboe-api
+    runtime: docker
+    dockerfilePath: infra/Dockerfile.api
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    dockerCommand: sh -c "alembic upgrade head && uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # postgresql+asyncpg://postgres:<pass>@db.<ref>.supabase.co:5432/postgres
+      - key: API_KEYS
+        sync: false
+      - key: API_CORS_ORIGINS
+        sync: false   # https://<tu-web>.vercel.app
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+  # Worker de ingesta/enriquecido/alertas (APScheduler). Sin puerto.
+  - type: worker
+    name: alertaboe-worker
+    runtime: docker
+    dockerfilePath: infra/Dockerfile.worker
+    dockerContext: .
+    plan: starter   # el worker necesita correr de forma continua
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false

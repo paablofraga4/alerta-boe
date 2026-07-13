@@ -7,6 +7,14 @@
 
 ---
 
+## ☁️ Despliegue
+
+- **Base de datos**: Supabase (proyecto `alerta-boe`, pgvector, esquema aplicado).
+- **Web**: Vercel (Next.js, `apps/web`).
+- **Backend Python (API + worker)**: contenedor (Render/Fly/Railway) apuntando a Supabase.
+
+Guía completa en [`infra/DEPLOY.md`](infra/DEPLOY.md).
+
 ## 🏗️ Refactor 2.0 (en curso)
 
 El proyecto está siendo reescrito sobre una arquitectura nueva, documentada en
