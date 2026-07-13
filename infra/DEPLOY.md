@@ -69,7 +69,7 @@ Render **no tiene plan gratis para workers**, así que separamos:
    (web, Docker `infra/Dockerfile.api`, **plan free**, sin tarjeta).
 2. Rellena los secretos (`sync:false`): `DATABASE_URL` (Supabase, paso 1),
    `API_CORS_ORIGINS` (tu dominio Vercel), `GROQ_API_KEY`, opcional
-   `OPENROUTER_API_KEY` y `API_KEYS`.
+   `OPENAI_API_KEY` (backup del LLM) y `API_KEYS`.
 3. La API aplica `alembic upgrade head` al arrancar (idempotente).
 4. Copia la URL que te da Render (p. ej. `https://alertaboe-api.onrender.com`)
    para el paso 2 (Vercel).
@@ -84,7 +84,7 @@ las 07:00 UTC (y a demanda desde *Actions → Run workflow*). Configura los
 **secrets del repo** (GitHub → *Settings → Secrets and variables → Actions*):
 
 - `DATABASE_URL` (el de Supabase, paso 1) y `GROQ_API_KEY` (mínimo).
-- Opcionales: `OPENROUTER_API_KEY`, `SMTP_*`, `TELEGRAM_BOT_TOKEN`.
+- Opcionales: `OPENAI_API_KEY` (backup LLM), `SMTP_*`, `TELEGRAM_BOT_TOKEN`.
 
 Así no necesitas ningún worker de pago. Si prefieres un worker siempre-encendido
 en Render, el `render.yaml` incluye el bloque comentado (requiere plan de pago).
@@ -108,7 +108,7 @@ SKIPPED y la **búsqueda funciona en modo full-text**. Actívalo (extra
 | `DATABASE_URL` | Render (API) **+** GitHub Actions (secret) | Conexión a Supabase (asyncpg) |
 | `GROQ_API_KEY` | Render (API) **+** GitHub Actions (secret) | LLM (resúmenes, chat, contenido) |
 | `API_CORS_ORIGINS` | Render (API) | Permitir el dominio de la web |
-| `OPENROUTER_API_KEY` | Render (API) + Actions | LLM de reserva (opcional) |
+| `OPENAI_API_KEY` | Render (API) + Actions | LLM de reserva/backup (opcional) |
 | `API_KEYS` | Render (API) | Auth de `/v1` por `X-API-Key` (opcional) |
 | `SMTP_*` | GitHub Actions (secret) | Alertas por email (opcional) |
 | `TELEGRAM_BOT_TOKEN` | GitHub Actions (secret) | Alertas por Telegram (opcional) |
