@@ -1,10 +1,13 @@
-# Blueprint de Render para el backend Python (API + worker) de AlertaBOE.
-# La web va en Vercel y la base de datos en Supabase; esto es solo el backend.
+# Blueprint de Render para la API de AlertaBOE (plan gratuito).
 #
-# Uso: en Render → New → Blueprint → apuntar a este repo. Rellenar los secretos
-# marcados como sync:false (DATABASE_URL de Supabase, claves LLM, etc.).
+# La web va en Vercel, la base de datos en Supabase y la INGESTA DIARIA en un
+# cron de GitHub Actions (.github/workflows/ingest.yml) — así todo es gratis:
+# Render no tiene plan gratis para workers, pero sí para servicios web.
+#
+# Uso: Render → New → Blueprint → apuntar a este repo. Rellenar los secretos
+# marcados como sync:false.
 services:
-  # API pública (FastAPI). Aplica migraciones al arrancar.
+  # API pública (FastAPI). Aplica migraciones al arrancar. Plan free.
   - type: web
     name: alertaboe-api
     runtime: docker
@@ -15,35 +18,31 @@ services:
     dockerCommand: sh -c "alembic upgrade head && uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: DATABASE_URL
-        sync: false   # postgresql+asyncpg://postgres:<pass>@db.<ref>.supabase.co:5432/postgres
-      - key: API_KEYS
-        sync: false
+        sync: false   # postgresql+asyncpg://postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:5432/postgres
       - key: API_CORS_ORIGINS
         sync: false   # https://<tu-web>.vercel.app
       - key: GROQ_API_KEY
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: API_KEYS
+        sync: false   # opcional: protege /v1 con X-API-Key
 
-  # Worker de ingesta/enriquecido/alertas (APScheduler). Sin puerto.
-  - type: worker
-    name: alertaboe-worker
-    runtime: docker
-    dockerfilePath: infra/Dockerfile.worker
-    dockerContext: .
-    plan: starter   # el worker necesita correr de forma continua
-    envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
+# ─────────────────────────────────────────────────────────────────────────────
+# ¿Quieres la ingesta como worker siempre-encendido en Render en vez del cron de
+# GitHub Actions? Añade esto (requiere plan de pago, Render no tiene worker free):
+#
+#   - type: worker
+#     name: alertaboe-worker
+#     runtime: docker
+#     dockerfilePath: infra/Dockerfile.worker
+#     dockerContext: .
+#     plan: starter
+#     envVars:
+#       - { key: DATABASE_URL, sync: false }
+#       - { key: GROQ_API_KEY, sync: false }
+#       - { key: OPENROUTER_API_KEY, sync: false }
+#       - { key: SMTP_HOST, sync: false }
+#       - { key: SMTP_USER, sync: false }
+#       - { key: SMTP_PASSWORD, sync: false }
+#       - { key: TELEGRAM_BOT_TOKEN, sync: false }
