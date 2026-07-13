@@ -1,0 +1,95 @@
+[project]
+name = "alertaboe"
+version = "0.2.0"
+description = "Democratiza el BOE: ingesta de las APIs oficiales, grafo normativo, búsqueda híbrida y fábrica de contenido."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "Pablo Fraga" }]
+
+dependencies = [
+    # --- API / web framework ---
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    # --- HTTP client (async) hacia las APIs del BOE ---
+    "httpx>=0.28",
+    "tenacity>=9.0",
+    # --- persistencia ---
+    "sqlalchemy[asyncio]>=2.0.39",
+    "asyncpg>=0.30",
+    "psycopg[binary]>=3.2",
+    "alembic>=1.14",
+    "pgvector>=0.3.6",
+    # --- parsing ---
+    "beautifulsoup4>=4.12",
+    "lxml>=5.3",
+    # --- LLM (OpenAI-compatible: Groq / OpenRouter / OpenAI) ---
+    "openai>=1.60",
+    # --- utilidades ---
+    "structlog>=24.4",
+    "python-dateutil>=2.9",
+]
+
+[project.optional-dependencies]
+# Embeddings locales (worker). Pesado: se instala solo donde se calculan vectores.
+embeddings = [
+    "sentence-transformers>=3.3",
+]
+# Jobs programados del worker.
+worker = [
+    "apscheduler>=3.11",
+]
+# Fábrica de contenido: TTS para la narración de los vídeos (voces es-ES gratis).
+video = [
+    "edge-tts>=6.1",
+]
+dev = [
+    "ruff>=0.9",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "respx>=0.22",
+    "anyio>=4.7",
+]
+
+[project.scripts]
+boe = "boe.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["boe*", "apps*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    # Código legacy que se retirará en fases posteriores (F3). No se lintea.
+    "app",
+    "scripts",
+    "frontend.py",
+    "consultor.py",
+    "bulk_scraper.py",
+    "trials_ajenas.py",
+    "drop_tables.py",
+    "create_tables.py",
+    "poblar_tablas_auxiliares.py",
+    "test_groq_outside.py",
+    "test_rerun.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = [
+    "E501",  # line-length la controla el formatter
+    "B008",  # Depends()/Query() en defaults es el idioma de FastAPI
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]

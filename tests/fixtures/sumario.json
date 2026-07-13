@@ -1,0 +1,74 @@
+{
+  "data": {
+    "sumario": {
+      "diario": [
+        {
+          "numero": "163",
+          "seccion": [
+            {
+              "codigo": "1",
+              "nombre": "I. Disposiciones generales",
+              "departamento": {
+                "nombre": "MINISTERIO DE HACIENDA",
+                "item": [
+                  {
+                    "identificador": "BOE-A-2024-0001",
+                    "titulo": "Orden por la que se aprueban ayudas a autónomos.",
+                    "url_html": "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-0001",
+                    "url_pdf": {
+                      "texto": "https://boe.es/boe/dias/2024/07/09/pdfs/BOE-A-2024-0001.pdf",
+                      "pagina_inicial": "100",
+                      "pagina_final": "104"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "codigo": "2B",
+              "nombre": "II. Autoridades y personal",
+              "departamento": [
+                {
+                  "nombre": "MINISTERIO DE JUSTICIA",
+                  "epigrafe": [
+                    {
+                      "nombre": "Nombramientos",
+                      "item": {
+                        "identificador": "BOE-A-2024-0002",
+                        "titulo": "Real Decreto por el que se nombra a un cargo.",
+                        "url_html": "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-0002",
+                        "url_pdf": {
+                          "texto": "https://boe.es/boe/dias/2024/07/09/pdfs/BOE-A-2024-0002.pdf",
+                          "pagina_inicial": "200",
+                          "pagina_final": "200"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "nombre": "MINISTERIO SIN PAGINAS",
+                  "item": [
+                    {
+                      "identificador": "BOE-A-2024-0003",
+                      "titulo": "Resolución sin datos de página.",
+                      "url_html": "https://boe.es/diario_boe/txt.php?id=BOE-A-2024-0003",
+                      "url_pdf": {
+                        "texto": "https://boe.es/boe/dias/2024/07/09/pdfs/BOE-A-2024-0003.pdf",
+                        "pagina_inicial": null,
+                        "pagina_final": null
+                      }
+                    },
+                    {
+                      "titulo": "Item corrupto sin identificador, debe ignorarse."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

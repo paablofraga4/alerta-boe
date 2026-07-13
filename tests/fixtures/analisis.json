@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "analisis": {
+        "materias": [
+          { "codigo": "1", "texto": "Autónomos" }
+        ],
+        "referencias": {
+          "anteriores": [
+            {
+              "referencia": "BOE-A-2020-1000",
+              "texto": "Ley 5/2020 de apoyo al trabajo autónomo",
+              "palabra": { "codigo": "01", "texto": "MODIFICA el art. 3 de" }
+            },
+            {
+              "referencia": "BOE-A-2015-0500",
+              "texto": "Reglamento general de subvenciones",
+              "palabra": { "codigo": "02", "texto": "DE CONFORMIDAD con" }
+            }
+          ],
+          "posteriores": {
+            "referencia": "BOE-A-2025-2000",
+            "texto": "Corrección de errores de la orden de ayudas",
+            "palabra": { "codigo": "03", "texto": "CORRIGE" }
+          }
+        }
+      }
+    }
+  ]
+}

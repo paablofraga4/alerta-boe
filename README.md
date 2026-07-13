@@ -7,6 +7,123 @@
 
 ---
 
+## ☁️ Despliegue
+
+- **Base de datos**: Supabase (proyecto `alerta-boe`, pgvector, esquema aplicado).
+- **Web**: Vercel (Next.js, `apps/web`).
+- **Backend Python (API + worker)**: contenedor (Render/Fly/Railway) apuntando a Supabase.
+
+Guía completa en [`infra/DEPLOY.md`](infra/DEPLOY.md).
+
+## 🏗️ Refactor 2.0 (en curso)
+
+El proyecto está siendo reescrito sobre una arquitectura nueva, documentada en
+[`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): monorepo con paquete de dominio
+`boe/`, API `apps/api` (FastAPI async), web `apps/web` (Next.js), PostgreSQL +
+pgvector, grafo normativo ("hilo y precedentes") y fábrica de contenido para
+redes. El código de la carpeta `app/` y `frontend.py` es **legacy** y se
+retirará en fases posteriores; convive con el nuevo mientras dure la migración.
+
+### Puesta en marcha (stack 2.0)
+
+```bash
+# 1. Instalar el paquete y las dependencias de desarrollo
+pip install -e ".[dev]"
+
+# 2. Configurar el entorno
+cp .env.example .env    # edita GROQ_API_KEY, etc.
+
+# 3. Levantar todo con Docker (Postgres+pgvector, API y worker)
+docker compose -f infra/docker-compose.yml up --build
+#    La API aplica las migraciones y queda en http://localhost:8000/docs
+
+# --- o, sin Docker, contra tu propio Postgres con pgvector ---
+alembic upgrade head             # crea la extensión vector + el esquema
+uvicorn apps.api.main:app --reload --port 8000
+
+# 4. Comprobar configuración y smoke test de los clientes del BOE
+boe check
+boe fetch-summary 20240709
+```
+
+### Calidad
+
+```bash
+ruff check boe apps tests     # lint
+pytest -q                     # tests (parsing del BOE, router LLM, cliente HTTP)
+```
+
+El CI (GitHub Actions) ejecuta lint, tests y aplica las migraciones sobre un
+Postgres con pgvector en cada PR.
+
+### API v1 (endpoints principales)
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/health`, `/health/db` | Salud del servicio y de la DB |
+| GET | `/v1/digest/{fecha}` | El BOE del día: agrupado por ámbito, resumido y con destacados |
+| GET | `/v1/documents` | Listado con filtros (fecha, departamento) |
+| GET | `/v1/documents/{boe_id}` | Detalle de una publicación |
+| GET | `/v1/documents/{boe_id}/thread` | El hilo normativo: precedentes y derivadas |
+| POST | `/v1/search` | Búsqueda híbrida (full-text español + vectorial, RRF) con filtros |
+| POST | `/v1/chat` | Chat RAG con citas obligatorias a los `boe_id` |
+| GET | `/v1/content` | Cola de la fábrica de contenido (borradores/aprobados…) |
+| POST | `/v1/content/{id}/approve\|reject\|publish` | Aprobación humana y publicación |
+| POST/GET/DELETE | `/v1/subscriptions` | Alertas por tema/región/ámbito/palabra clave (email o Telegram) |
+
+Los endpoints `/v1` aceptan la cabecera `X-API-Key` (obligatoria si `API_KEYS`
+está definido; API abierta en desarrollo si no).
+
+### Web (Next.js 14)
+
+La interfaz nueva vive en `apps/web` y sustituye al Streamlit legacy (`frontend.py`):
+
+```bash
+cd apps/web
+cp .env.local.example .env.local   # apunta NEXT_PUBLIC_API_BASE a la API
+npm install
+npm run dev                        # http://localhost:3000
+```
+
+Páginas: **home "El BOE de hoy"** (SSR, con selector de fecha y destacados),
+**buscar** (búsqueda híbrida) y **documento** (SSR e indexable: resumen en claro,
+el **hilo normativo** de precedentes y derivadas, y un chat con citas). Con Docker
+levanta junto al resto vía `infra/docker-compose.yml`.
+
+### Fábrica de contenido (redes)
+
+Genera borradores de posts para LinkedIn/X/TikTok a partir de las publicaciones
+más relevantes del día, con aprobación humana antes de publicar:
+
+```bash
+boe content-generate 2024-07-09   # curar → guionizar → validar → encolar (draft)
+boe content-list                  # ver la cola
+# aprobar/publicar desde la web o vía POST /v1/content/{id}/approve|publish
+```
+
+El curador puntúa el interés general (ámbito, rango, temas, tamaño del hilo); el
+guionista adapta la pieza a cada canal; el validador comprueba fidelidad a la
+fuente, cita del `boe_id` y disclaimer. Los borradores se revisan y publican
+desde la web (**/contenido**) o vía `POST /v1/content/{id}/approve|publish`.
+
+Para vídeo (TikTok) el pipeline emite `props.json` + subtítulos (SRT) desde el
+guion y la narración con `edge-tts` (extra `[video]`); el mp4 final lo compone la
+plantilla **Remotion** de `apps/video`:
+
+```bash
+cd apps/video && npm install
+npm run render -- /ruta/<id>.props.json ./out/<id>.mp4   # vídeo vertical con voz y subtítulos
+```
+
+---
+
+## 📜 Documentación legacy
+
+> Lo que sigue describe el sistema actual (Streamlit + scripts), que se mantiene
+> operativo durante el refactor.
+
+---
+
 ## 🚀 ¿Qué hace?
 
 ✅ Funcionalidades principales:

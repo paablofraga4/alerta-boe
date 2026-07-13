@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "identificador": "BOE-A-2020-1000",
+      "titulo": "Ley 5/2020, de apoyo al trabajo autónomo",
+      "rango": { "codigo": "1300", "texto": "Ley" },
+      "departamento": { "codigo": "7723", "texto": "Jefatura del Estado" },
+      "ambito": { "codigo": "1", "texto": "Estatal" },
+      "estado_consolidacion": { "codigo": "3", "texto": "Finalizado" },
+      "fecha_disposicion": "20200615",
+      "fecha_publicacion": "20200616",
+      "fecha_vigencia": "20200701",
+      "vigencia_agotada": "N",
+      "url_html_consolidada": "https://boe.es/buscar/act.php?id=BOE-A-2020-1000"
+    }
+  ]
+}
