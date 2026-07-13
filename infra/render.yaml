@@ -15,7 +15,9 @@ services:
     dockerContext: .
     plan: free
     healthCheckPath: /health
-    dockerCommand: sh -c "alembic upgrade head && uvicorn apps.api.main:app --host 0.0.0.0 --port $PORT"
+    # El arranque (migraciones + uvicorn en $PORT) lo hace el CMD del
+    # Dockerfile via infra/start.sh. No usamos dockerCommand porque Render
+    # anida mal el "sh -c" y da 'exit 127: not found'.
     envVars:
       - key: DATABASE_URL
         sync: false   # postgresql+asyncpg://postgres.<ref>:<pass>@aws-0-<region>.pooler.supabase.com:5432/postgres
