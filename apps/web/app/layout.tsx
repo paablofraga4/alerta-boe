@@ -27,6 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/buscar" className="hover:text-boe-primary">
                 Buscar
               </Link>
+              <Link href="/contenido" className="hover:text-boe-primary">
+                Contenido
+              </Link>
             </div>
           </nav>
         </header>

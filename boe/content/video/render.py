@@ -18,9 +18,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from boe.content.video.subtitles import build_srt, estimated_duration
+from boe.content.video.subtitles import build_cues, build_srt, estimated_duration
 
 DEFAULT_VOICE = "es-ES-AlvaroNeural"
+DEFAULT_FPS = 30
+# Colchón al final para el CTA (segundos) tras terminar la narración.
+_TAIL_SEC = 2.0
 
 
 def build_props(
@@ -29,15 +32,26 @@ def build_props(
     points: list[str],
     cta: str,
     narration: str,
+    *,
+    fps: int = DEFAULT_FPS,
 ) -> dict:
-    """Props para la plantilla de vídeo (Remotion) + subtítulos y duración."""
+    """Props para la plantilla de vídeo Remotion.
+
+    Contiene todo lo que la composición `BoeShort` necesita para renderizar sin
+    parsear nada: textos, subtítulos con tiempos, duración y frames.
+    """
+    duration_sec = estimated_duration(narration) + _TAIL_SEC
     return {
-        "boe_id": boe_id,
+        "boeId": boe_id,
         "hook": hook,
         "points": points,
         "cta": cta,
+        "cues": build_cues(narration),
+        "narration": narration,
+        "fps": fps,
+        "durationSec": round(duration_sec, 1),
+        "durationInFrames": max(int(duration_sec * fps), fps),
         "srt": build_srt(narration),
-        "duration_sec": estimated_duration(narration),
     }
 
 
@@ -63,6 +77,11 @@ async def render_assets(post_id: int, props: dict, out_dir: Path) -> dict:
     audio_path = out_dir / f"{post_id}.mp3"
     narration = props.get("narration") or props.get("srt", "")
     has_audio = await synth_narration(narration, audio_path)
+
+    if has_audio:
+        # La plantilla Remotion carga el audio vía staticFile(audioFile).
+        props["audioFile"] = audio_path.name
+        props_path.write_text(json.dumps(props, ensure_ascii=False, indent=2), encoding="utf-8")
 
     return {
         "props": str(props_path),

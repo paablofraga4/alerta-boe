@@ -94,9 +94,17 @@ boe content-list                  # ver la cola
 
 El curador puntúa el interés general (ámbito, rango, temas, tamaño del hilo); el
 guionista adapta la pieza a cada canal; el validador comprueba fidelidad a la
-fuente, cita del `boe_id` y disclaimer. Para vídeo (TikTok) se generan subtítulos
-(SRT) desde el guion y la narración con `edge-tts` (extra `[video]`); el mp4 final
-lo compone una plantilla Remotion a partir de las props emitidas.
+fuente, cita del `boe_id` y disclaimer. Los borradores se revisan y publican
+desde la web (**/contenido**) o vía `POST /v1/content/{id}/approve|publish`.
+
+Para vídeo (TikTok) el pipeline emite `props.json` + subtítulos (SRT) desde el
+guion y la narración con `edge-tts` (extra `[video]`); el mp4 final lo compone la
+plantilla **Remotion** de `apps/video`:
+
+```bash
+cd apps/video && npm install
+npm run render -- /ruta/<id>.props.json ./out/<id>.mp4   # vídeo vertical con voz y subtítulos
+```
 
 ---
 

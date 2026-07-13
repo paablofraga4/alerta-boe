@@ -74,6 +74,25 @@ export interface SearchResponse { query: string; total: number; results: SearchH
 export interface Citation { boe_id: string; title: string; url_html: string | null; }
 export interface ChatResponse { answer: string; citations: Citation[]; }
 
+export type ContentChannel = "linkedin" | "x" | "tiktok";
+export type ContentStatus =
+  | "draft" | "approved" | "scheduled" | "published" | "rejected" | "failed";
+
+export interface ContentPost {
+  id: number;
+  boe_id: string | null;
+  channel: ContentChannel;
+  status: ContentStatus;
+  script: string | null;
+  interest_score: number | null;
+  asset_path: string | null;
+  external_id: string | null;
+  published_at: string | null;
+  metrics: Record<string, unknown> | null;
+}
+
+export interface ContentListResponse { total: number; posts: ContentPost[]; }
+
 // ─── Llamadas ────────────────────────────────────────────────────────────────
 
 async function get<T>(path: string, revalidate = 300): Promise<T> {
@@ -96,12 +115,25 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function buildQuery(params: Record<string, string | undefined>): string {
+  const q = Object.entries(params)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`)
+    .join("&");
+  return q ? `?${q}` : "";
+}
+
 export const api = {
   digest: (fecha: string) => get<Digest>(`/v1/digest/${fecha}`),
   document: (boeId: string) => get<DocumentDetail>(`/v1/documents/${boeId}`),
   thread: (boeId: string) => get<Thread>(`/v1/documents/${boeId}/thread`),
   search: (body: Record<string, unknown>) => post<SearchResponse>(`/v1/search`, body),
   chat: (body: Record<string, unknown>) => post<ChatResponse>(`/v1/chat`, body),
+  content: (status?: string, channel?: string) =>
+    get<ContentListResponse>(`/v1/content${buildQuery({ status, channel })}`, 0),
+  approve: (id: number) => post<ContentPost>(`/v1/content/${id}/approve`, {}),
+  reject: (id: number) => post<ContentPost>(`/v1/content/${id}/reject`, {}),
+  publish: (id: number) => post<ContentPost>(`/v1/content/${id}/publish`, {}),
 };
 
 export const SCOPE_LABEL: Record<Scope, string> = {

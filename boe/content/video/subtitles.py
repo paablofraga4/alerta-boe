@@ -29,6 +29,21 @@ def split_into_cues(text: str, max_words: int = _MAX_WORDS_PER_CUE) -> list[str]
     return cues
 
 
+def build_cues(narration: str, words_per_sec: float = _WORDS_PER_SEC) -> list[dict]:
+    """Subtítulos estructurados con tiempos (para la plantilla Remotion).
+
+    Devuelve una lista de {index, start, end, text} en segundos, sin depender del
+    formato SRT (que la plantilla no querría parsear).
+    """
+    cues: list[dict] = []
+    t = 0.0
+    for idx, text in enumerate(split_into_cues(narration), start=1):
+        duration = max(len(text.split()) / words_per_sec, 1.0)
+        cues.append({"index": idx, "start": round(t, 3), "end": round(t + duration, 3), "text": text})
+        t += duration
+    return cues
+
+
 def _fmt_ts(seconds: float) -> str:
     ms = int(round(seconds * 1000))
     h, ms = divmod(ms, 3_600_000)
@@ -39,17 +54,12 @@ def _fmt_ts(seconds: float) -> str:
 
 def build_srt(narration: str, words_per_sec: float = _WORDS_PER_SEC) -> str:
     """Construye un SRT con tiempos estimados a partir de la narración."""
-    cues = split_into_cues(narration)
     lines: list[str] = []
-    t = 0.0
-    for idx, cue in enumerate(cues, start=1):
-        duration = max(len(cue.split()) / words_per_sec, 1.0)
-        start, end = t, t + duration
-        lines.append(str(idx))
-        lines.append(f"{_fmt_ts(start)} --> {_fmt_ts(end)}")
-        lines.append(cue)
+    for cue in build_cues(narration, words_per_sec):
+        lines.append(str(cue["index"]))
+        lines.append(f"{_fmt_ts(cue['start'])} --> {_fmt_ts(cue['end'])}")
+        lines.append(cue["text"])
         lines.append("")
-        t = end
     return "\n".join(lines)
 
 

@@ -248,7 +248,7 @@ Pipeline agentico (grafo LangGraph con roles y validación), ejecutado en cron d
 | **F2 — API v1** ✅ | API pública consumible | Endpoints de digest/documents/thread/search híbrida (full-text español + pgvector con RRF)/chat RAG con citas obligatorias; auth por API key; índices GIN + HNSW |
 | **F3 — Web** ✅ | Sustituto de Streamlit | Next.js 14 (App Router + Tailwind): home "BOE de hoy" (SSR), explorador de búsqueda, página de documento (SSR, SEO) con resumen, hilo normativo visual y chat. `frontend.py` queda marcado como legacy |
 | **F4 — Grafo** | El diferenciador | Ingesta de `analisis` (referencias), tabla `references`, endpoints thread/timeline, visualización interactiva del hilo |
-| **F5 — Content factory** ✅ | Publicación recurrente | Curador (scoring de interés) → Guionista (LinkedIn/X/TikTok) → Validador (anti-alucinación con citas); cola `content_posts` con aprobación humana vía `/v1/content`; publicadores (dry-run + interfaz real); render de vídeo (guion→SRT + narración edge-tts + props Remotion) |
+| **F5 — Content factory** ✅ | Publicación recurrente | Curador (scoring de interés) → Guionista (LinkedIn/X/TikTok) → Validador (anti-alucinación con citas); cola `content_posts` con aprobación humana vía `/v1/content` y **panel web `/contenido`**; publicadores (dry-run + interfaz real); **vídeo end-to-end**: guion→SRT + narración edge-tts + **plantilla Remotion** (`apps/video`) que renderiza el mp4 vertical |
 | **F6 — Alertas y usuarios** | Retención | Login ligero, suscripciones por tema/región, email/Telegram digest |
 
 Cada fase termina con algo usable en producción. F1-F2 pueden solaparse; F5 (texto) puede adelantarse en
