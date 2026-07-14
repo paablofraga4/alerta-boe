@@ -45,7 +45,18 @@ def _build_engine():
     if "ssl" in url.query:
         url = url.difference_update_query(["ssl"])
 
-    connect_args = {"ssl": True} if wants_ssl else {}
+    connect_args: dict = {}
+    if wants_ssl:
+        # Cifra pero NO verifica el certificado (equivale a sslmode=require, el
+        # modo estándar con Supabase). Su pooler presenta un cert que no valida
+        # contra el almacén de CAs por defecto → 'ssl=True' fallaría.
+        import ssl as _ssl
+
+        ctx = _ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        connect_args["ssl"] = ctx
+
     return create_async_engine(
         url, echo=settings.db_echo, pool_pre_ping=True, connect_args=connect_args
     )
