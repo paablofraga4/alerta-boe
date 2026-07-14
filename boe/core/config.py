@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +20,19 @@ class Settings(BaseSettings):
         extra="ignore",
         case_sensitive=False,
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _ignore_empty_env(cls, values: dict) -> dict:
+        """Ignora variables de entorno vacías para usar el valor por defecto.
+
+        En CI/hosts, un secreto no configurado llega como cadena vacía (""), lo
+        que rompería campos tipados (p. ej. `smtp_port: int`). Aquí se descartan
+        para que apliquen los defaults en su lugar.
+        """
+        if isinstance(values, dict):
+            return {k: v for k, v in values.items() if not (isinstance(v, str) and v == "")}
+        return values
 
     # ─── Base de datos ───────────────────────────────────────────────────────
     # Debe ser una URL async (postgresql+asyncpg://...).
