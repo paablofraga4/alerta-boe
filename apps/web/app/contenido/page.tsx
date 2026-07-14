@@ -69,7 +69,7 @@ export default function ContenidoPage() {
             onClick={() => setStatus(f.value)}
             className={`rounded-full px-3 py-1 text-sm ${
               status === f.value
-                ? "bg-boe-primary text-white"
+                ? "bg-crimson text-white"
                 : "border border-gray-300 dark:border-gray-700"
             }`}
           >

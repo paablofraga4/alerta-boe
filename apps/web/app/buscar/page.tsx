@@ -2,65 +2,62 @@
 
 import { useState } from "react";
 import { api, type SearchHit } from "@/lib/api";
-import { DocumentCard } from "@/components/DocumentCard";
+import { HeadlineItem } from "@/components/Headline";
 
 export default function BuscarPage() {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   async function onSearch(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setError(false);
     try {
       const res = await api.search({ query, limit: 30 });
       setHits(res.results);
       setSearched(true);
     } catch {
-      setError("No se ha podido completar la búsqueda.");
+      setError(true);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Buscar en el BOE</h1>
-        <p className="text-sm text-gray-500">
-          Búsqueda híbrida: combina texto y significado. Prueba
-          &ldquo;ayudas a autónomos&rdquo; o &ldquo;transporte escolar&rdquo;.
-        </p>
-      </div>
+    <div>
+      <h1 className="font-serif text-3xl font-semibold">Buscar en el BOE</h1>
+      <p className="mt-1 text-muted">
+        Búsqueda que combina texto y significado. Prueba «ayudas a autónomos» o «transporte escolar».
+      </p>
 
-      <form onSubmit={onSearch} className="flex gap-2">
+      <form onSubmit={onSearch} className="mt-6 flex gap-2 border-b-2 border-ink pb-2">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="¿Qué te afecta?"
-          className="flex-1 rounded-lg border border-gray-300 bg-transparent px-4 py-2 dark:border-gray-700"
+          className="flex-1 bg-transparent px-1 py-2 font-serif text-xl outline-none placeholder:text-muted"
+          autoFocus
         />
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg bg-boe-primary px-5 py-2 font-medium text-white disabled:opacity-50"
+          className="rounded-sm bg-crimson px-5 py-2 font-medium text-white disabled:opacity-50"
         >
-          {loading ? "Buscando…" : "Buscar"}
+          {loading ? "…" : "Buscar"}
         </button>
       </form>
 
-      {error && <p className="rounded bg-red-50 p-4 text-red-700">{error}</p>}
-
+      {error && <p className="mt-6 text-crimson">No se ha podido completar la búsqueda.</p>}
       {searched && !loading && hits.length === 0 && (
-        <p className="text-gray-500">Sin resultados para tu búsqueda.</p>
+        <p className="mt-6 text-muted">Sin resultados para tu búsqueda.</p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-x-8 sm:grid-cols-2">
         {hits.map((hit) => (
-          <DocumentCard key={hit.document.boe_id} item={hit.document} />
+          <HeadlineItem key={hit.document.boe_id} item={hit.document} />
         ))}
       </div>
     </div>

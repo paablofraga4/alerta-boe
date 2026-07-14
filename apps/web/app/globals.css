@@ -3,15 +3,64 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  --paper: #fbfaf8;
+  --ink: #1a1a18;
+  --muted: #6b6862;
+  --hair: #e6e2da;
+  --card: #ffffff;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"],
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e0e10;
+    --ink: #ededea;
+    --muted: #9a968d;
+    --hair: #26262b;
+    --card: #16161a;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0e0e10;
+  --ink: #ededea;
+  --muted: #9a968d;
+  --hair: #26262b;
+  --card: #16161a;
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-boe-ink text-gray-100;
-  }
+/* Kicker: etiqueta editorial en versalitas */
+.kicker {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--crimson, #b11226);
+}
+
+/* Cuerpo de lectura grande en la ficha */
+.reading p {
+  margin-bottom: 1.1rem;
+}
+.reading {
+  font-size: 1.18rem;
+  line-height: 1.72;
+}
+.reading > p:first-of-type::first-letter {
+  font-family: var(--font-serif);
+  font-size: 3.4rem;
+  line-height: 0.8;
+  float: left;
+  padding: 0.1rem 0.6rem 0 0;
+  color: var(--ink);
 }

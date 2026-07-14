@@ -1,5 +1,5 @@
-import { api, SCOPE_LABEL, type Digest } from "@/lib/api";
-import { DocumentCard } from "@/components/DocumentCard";
+import { api, SCOPE_LABEL, type Digest, type DigestItem } from "@/lib/api";
+import { HeadlineItem, LeadStory } from "@/components/Headline";
 import { DateNav } from "@/components/DateNav";
 
 export const dynamic = "force-dynamic";
@@ -16,61 +16,62 @@ export default async function HomePage({
   const fecha = searchParams.fecha ?? today();
 
   let digest: Digest | null = null;
-  let error: string | null = null;
+  let error = false;
   try {
     digest = await api.digest(fecha);
   } catch {
-    error = "No se ha podido cargar el BOE (¿está la API en marcha?).";
+    error = true;
   }
 
+  const lead = digest?.highlights?.[0] ?? null;
+  const leadId = lead?.boe_id;
+
   return (
-    <div className="space-y-8">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">El BOE de hoy, en claro</h1>
-          <p className="text-sm text-gray-500">
-            Publicaciones oficiales del {fecha}, resumidas y agrupadas.
-          </p>
-        </div>
+    <div>
+      <div className="mb-6 flex items-end justify-between gap-4 border-b border-hair pb-3">
+        <h1 className="kicker !text-ink">Portada del día</h1>
         <DateNav fecha={fecha} />
-      </section>
+      </div>
 
-      {error && <p className="rounded bg-red-50 p-4 text-red-700">{error}</p>}
-
-      {digest && digest.total === 0 && (
-        <p className="rounded border border-dashed border-gray-300 p-8 text-center text-gray-500 dark:border-gray-700">
-          No hay publicaciones del BOE para esta fecha (puede ser fin de semana o
-          festivo, o aún no se ha ingerido).
+      {error && (
+        <p className="rounded-sm border border-hair bg-card p-6 text-muted">
+          No se ha podido cargar el BOE. Es posible que el servicio esté despertando
+          (tarda unos segundos la primera vez) o que aún no se haya ingerido este día.
         </p>
       )}
 
-      {digest && digest.highlights.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">Destacados</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {digest.highlights.map((item) => (
-              <DocumentCard key={item.boe_id} item={item} />
-            ))}
-          </div>
+      {digest && digest.total === 0 && !error && (
+        <div className="border border-dashed border-hair p-10 text-center">
+          <p className="font-serif text-2xl">Sin publicaciones para el {fecha}</p>
+          <p className="mt-2 text-muted">
+            Puede ser fin de semana o festivo, o que todavía no se haya procesado el día.
+          </p>
+        </div>
+      )}
+
+      {lead && (
+        <section className="mb-10 border-b border-ink pb-10">
+          <LeadStory item={lead} />
         </section>
       )}
 
-      {digest &&
-        digest.groups.map((group) => (
-          <section key={group.scope}>
-            <h2 className="mb-3 text-lg font-semibold">
-              {SCOPE_LABEL[group.scope]}{" "}
-              <span className="text-sm font-normal text-gray-400">
-                ({group.count})
-              </span>
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {group.items.map((item) => (
-                <DocumentCard key={item.boe_id} item={item} />
+      {digest?.groups.map((group) => {
+        const items = group.items.filter((it) => it.boe_id !== leadId);
+        if (items.length === 0) return null;
+        return (
+          <section key={group.scope} className="mb-10">
+            <div className="mb-1 flex items-baseline gap-3">
+              <h2 className="font-serif text-lg font-semibold">{SCOPE_LABEL[group.scope]}</h2>
+              <span className="text-sm text-muted">{group.count}</span>
+            </div>
+            <div className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((item: DigestItem) => (
+                <HeadlineItem key={item.boe_id} item={item} />
               ))}
             </div>
           </section>
-        ))}
+        );
+      })}
     </div>
   );
 }
