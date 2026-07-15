@@ -16,9 +16,8 @@ Create Date: 2026-07-09
 from collections.abc import Sequence
 
 from alembic import op
-
-from boe.core.db import Base
 from boe.core import models  # noqa: F401 — registra las tablas en el metadata
+from boe.core.db import Base
 
 revision: str = "0001"
 down_revision: str | None = None

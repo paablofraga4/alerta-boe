@@ -159,13 +159,17 @@ class Pipeline:
         if stage == PipelineStage.SUMMARIZED:
             if not self._router.has_provider:
                 return StageStatus.SKIPPED
-            result, version = await summarize(self._router, doc.full_text or "", doc.title)
+            brief, version = await summarize(self._router, doc.full_text or "", doc.title)
+            # El brief guarda long/short/hook y, aparte, los campos estructurados
+            # que la web muestra como ficha "en claro".
+            structured = brief.model_dump(exclude={"long", "short", "hook"})
             session.add(
                 Summary(
                     document_id=doc.id,
-                    long=result.long,
-                    short=result.short,
-                    hook=result.hook,
+                    long=brief.long,
+                    short=brief.short,
+                    hook=brief.hook,
+                    structured=structured,
                     model="llm",
                     prompt_version=version,
                 )

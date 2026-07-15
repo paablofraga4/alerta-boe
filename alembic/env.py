@@ -8,9 +8,9 @@ modelos para que `alembic revision --autogenerate` funcione en el futuro.
 
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import create_engine, pool
 
+from alembic import context
 from boe.core import models  # noqa: F401 — registra los modelos en Base.metadata
 from boe.core.config import settings
 from boe.core.db import Base

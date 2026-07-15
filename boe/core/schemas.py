@@ -36,6 +36,9 @@ class SummaryOut(BaseModel):
     long: str | None = None
     short: str | None = None
     hook: str | None = None
+    # Brief estructurado del agente por documento (qué regula, a quién afecta,
+    # puntos_clave, plazos, que_hacer). Nulo en resúmenes v1.
+    structured: dict | None = None
 
 
 class DocumentOut(BaseModel):

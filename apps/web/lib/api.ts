@@ -21,7 +21,21 @@ export type Scope = "europeo" | "nacional" | "autonomico" | "otro";
 
 export interface Topic { name: string; slug: string; }
 export interface Region { name: string; code: string | null; }
-export interface Summary { long: string | null; short: string | null; hook: string | null; }
+
+export interface Plazo { fecha: string; accion: string; }
+export interface SummaryStructured {
+  que_regula?: string;
+  a_quien_afecta?: string[];
+  puntos_clave?: string[];
+  plazos?: Plazo[];
+  que_hacer?: string[];
+}
+export interface Summary {
+  long: string | null;
+  short: string | null;
+  hook: string | null;
+  structured?: SummaryStructured | null;
+}
 
 export interface Document {
   boe_id: string;

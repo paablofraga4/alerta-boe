@@ -5,6 +5,7 @@ import { api, SCOPE_LABEL, type DocumentDetail, type Thread } from "@/lib/api";
 import { ThreadView } from "@/components/ThreadView";
 import { ChatBox } from "@/components/ChatBox";
 import { PdfPreview } from "@/components/PdfPreview";
+import { BriefFicha } from "@/components/BriefFicha";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export default async function DocumentoPage({ params }: { params: { boeId: strin
                 consultar el documento oficial a la derecha.
               </p>
             )}
+            {summary?.structured && <BriefFicha data={summary.structured} />}
           </section>
 
           <section className="mt-12 border-t border-hair pt-8">

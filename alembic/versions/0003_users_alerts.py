@@ -12,7 +12,6 @@ Create Date: 2026-07-13
 from collections.abc import Sequence
 
 from alembic import op
-
 from boe.core import models  # noqa: F401 — registra las tablas
 from boe.core.db import Base
 
