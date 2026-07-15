@@ -1,6 +1,7 @@
 import { api, SCOPE_LABEL, type Digest, type DigestItem } from "@/lib/api";
 import { HeadlineItem, LeadStory } from "@/components/Headline";
 import { DateNav } from "@/components/DateNav";
+import { ParaTi } from "@/components/ParaTi";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,8 @@ export default async function HomePage({
           <LeadStory item={lead} />
         </section>
       )}
+
+      <ParaTi />
 
       {digest?.groups.map((group) => {
         const items = group.items.filter((it) => it.boe_id !== leadId);

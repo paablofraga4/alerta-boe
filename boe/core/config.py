@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     embeddings_dim: int = 1024
 
     # ─── API pública ─────────────────────────────────────────────────────────
-    api_cors_origins: str = "http://localhost:3000"
+    api_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     log_level: str = "INFO"
 
     # API keys válidas (coma-separadas). Vacío = API abierta (solo desarrollo).

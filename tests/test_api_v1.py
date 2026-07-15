@@ -13,13 +13,15 @@ from apps.api import main
 from apps.api.routers import chat as chat_router
 from boe.core.db import get_session
 from boe.core.enums import Scope
-from boe.core.models import Document, Summary
+from boe.core.models import Document, Summary, Topic
 
 _FECHA = date(2024, 7, 9)
 
 
 async def _seed(session_factory):
     async with session_factory() as s:
+        ayudas = Topic(name="Subvención", slug="subvencion")
+        s.add(ayudas)
         d1 = Document(
             boe_id="BOE-A-2024-0001",
             published_at=_FECHA,
@@ -28,6 +30,7 @@ async def _seed(session_factory):
             scope=Scope.NACIONAL,
             departamento="MINISTERIO DE HACIENDA",
             url_html="https://boe.es/1",
+            topics=[ayudas],
         )
         d2 = Document(
             boe_id="BOE-A-2024-0002",
@@ -86,6 +89,21 @@ async def test_search_with_filter(client):
     assert resp.status_code == 200
     ids = {r["document"]["boe_id"] for r in resp.json()["results"]}
     assert ids == {"BOE-A-2024-0002"}
+
+
+async def test_topics_listing_with_counts(client):
+    resp = await client.get("/v1/topics")
+    assert resp.status_code == 200
+    topics = {t["slug"]: t for t in resp.json()["topics"]}
+    assert topics["subvencion"]["name"] == "Subvención"
+    assert topics["subvencion"]["count"] == 1
+
+
+async def test_search_filter_by_topic(client):
+    resp = await client.post("/v1/search", json={"query": "", "topic": "subvencion"})
+    assert resp.status_code == 200
+    ids = {r["document"]["boe_id"] for r in resp.json()["results"]}
+    assert ids == {"BOE-A-2024-0001"}
 
 
 async def test_chat_requires_provider(client):

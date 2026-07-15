@@ -103,7 +103,13 @@ export default async function DocumentoPage({ params }: { params: { boeId: strin
             {doc.topics.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5 border-t border-hair pt-3">
                 {doc.topics.map((t) => (
-                  <span key={t.slug} className="rounded-sm bg-paper px-2 py-0.5 text-xs text-muted">{t.name}</span>
+                  <Link
+                    key={t.slug}
+                    href={`/tema/${t.slug}`}
+                    className="rounded-sm bg-paper px-2 py-0.5 text-xs text-muted hover:text-crimson"
+                  >
+                    {t.name}
+                  </Link>
                 ))}
               </div>
             )}

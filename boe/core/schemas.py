@@ -84,6 +84,18 @@ class ThreadOut(BaseModel):
     posteriores: list[ReferenceOut] = []
 
 
+class TopicCountOut(BaseModel):
+    """Tema con su número de publicaciones (para chips y navegación)."""
+
+    name: str
+    slug: str
+    count: int
+
+
+class TopicListResponse(BaseModel):
+    topics: list[TopicCountOut] = []
+
+
 # ─── Búsqueda ────────────────────────────────────────────────────────────────
 
 
