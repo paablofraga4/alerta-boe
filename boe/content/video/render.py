@@ -56,13 +56,22 @@ def build_props(
 
 
 async def synth_narration(narration: str, out_path: Path, voice: str = DEFAULT_VOICE) -> bool:
-    """Genera el audio de la narración con edge-tts. True si se creó el mp3."""
+    """Genera el audio de la narración con edge-tts. True si se creó el mp3.
+
+    Degrada a False si edge-tts no está instalado O si el servicio de voz no es
+    alcanzable: el vídeo se renderiza igualmente sin narración en vez de tumbar
+    el lote entero.
+    """
     try:
         import edge_tts  # import perezoso: extra opcional
     except ImportError:  # pragma: no cover
         return False
-    communicate = edge_tts.Communicate(narration, voice)
-    await communicate.save(str(out_path))  # pragma: no cover
+    try:
+        communicate = edge_tts.Communicate(narration, voice)
+        await communicate.save(str(out_path))
+    except Exception:  # noqa: BLE001 — red/servicio caído: seguimos sin audio
+        out_path.unlink(missing_ok=True)
+        return False
     return True
 
 

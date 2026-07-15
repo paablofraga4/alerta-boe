@@ -1,0 +1,43 @@
+name: Render de vídeos aprobados
+
+# Renderiza con Remotion (voz es-ES + subtítulos) los vídeos de las piezas
+# TikTok APROBADAS en /contenido que aún no tienen mp4, y los publica como
+# artifact del workflow para descargarlos y subirlos a TikTok/Reels/Shorts.
+on:
+  schedule:
+    - cron: "0 9 * * *"   # 09:00 UTC, tras la ingesta y la curación
+  workflow_dispatch: {}
+
+concurrency:
+  group: render-videos
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar backend (con TTS)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[video]"
+      - name: Instalar Remotion
+        working-directory: apps/video
+        run: npm ci
+      - name: Renderizar vídeos pendientes
+        run: boe content-render --out data/videos
+      - name: Publicar mp4 como artifact
+        uses: actions/upload-artifact@v4
+        if: hashFiles('data/videos/*.mp4') != ''
+        with:
+          name: videos-alertaboe
+          path: data/videos/*.mp4
+          retention-days: 14

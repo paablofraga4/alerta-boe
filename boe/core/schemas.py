@@ -84,6 +84,24 @@ class ThreadOut(BaseModel):
     posteriores: list[ReferenceOut] = []
 
 
+class DeadlineOut(BaseModel):
+    """Un plazo vivo extraído por el agente, con su norma de origen."""
+
+    fecha: date
+    fecha_texto: str          # cómo aparece en la norma ("30 de septiembre de 2026")
+    accion: str
+    dias_restantes: int
+    boe_id: str
+    title: str
+    scope: Scope
+    topics: list[TopicOut] = []
+
+
+class DeadlineListResponse(BaseModel):
+    total: int
+    deadlines: list[DeadlineOut] = []
+
+
 class TopicCountOut(BaseModel):
     """Tema con su número de publicaciones (para chips y navegación)."""
 

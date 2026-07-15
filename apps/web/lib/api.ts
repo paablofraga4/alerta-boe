@@ -90,6 +90,18 @@ export interface SearchResponse { query: string; total: number; results: SearchH
 export interface TopicCount { name: string; slug: string; count: number; }
 export interface TopicListResponse { topics: TopicCount[]; }
 
+export interface Deadline {
+  fecha: string;
+  fecha_texto: string;
+  accion: string;
+  dias_restantes: number;
+  boe_id: string;
+  title: string;
+  scope: Scope;
+  topics: Topic[];
+}
+export interface DeadlineListResponse { total: number; deadlines: Deadline[]; }
+
 export interface Citation { boe_id: string; title: string; url_html: string | null; }
 export interface ChatResponse { answer: string; citations: Citation[]; }
 
@@ -144,6 +156,8 @@ function buildQuery(params: Record<string, string | undefined>): string {
 
 export const api = {
   topics: () => get<TopicListResponse>(`/v1/topics`),
+  deadlines: (topic?: string) =>
+    get<DeadlineListResponse>(`/v1/deadlines${buildQuery({ topic })}`, 600),
   digest: (fecha: string) => get<Digest>(`/v1/digest/${fecha}`),
   document: (boeId: string) => get<DocumentDetail>(`/v1/documents/${boeId}`),
   thread: (boeId: string) => get<Thread>(`/v1/documents/${boeId}/thread`),

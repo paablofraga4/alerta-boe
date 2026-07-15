@@ -45,6 +45,7 @@ function Masthead() {
           </Link>
           <nav className="hidden gap-6 pb-1 text-sm font-medium sm:flex">
             <Link href="/" className="hover:text-crimson">Portada</Link>
+            <Link href="/radar" className="hover:text-crimson">Radar de plazos</Link>
             <Link href="/buscar" className="hover:text-crimson">Buscar</Link>
             <Link href="/contenido" className="hover:text-crimson">Redacción</Link>
           </nav>

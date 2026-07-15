@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     # Telegram. Si falta el token, el notificador Telegram va en dry-run.
     telegram_bot_token: str | None = None
 
+    # URL pública de la web (para enlaces en emails y tarjetas).
+    web_base_url: str = "https://alertaboe.vercel.app"
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.api_cors_origins.split(",") if o.strip()]
