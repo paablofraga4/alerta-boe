@@ -1,20 +1,20 @@
-"""Etapa de resumen: una sola llamada LLM con salida estructurada.
+"""Etapa de resumen.
 
-Sustituye las DOS llamadas separadas del legacy (`summarizer_groq.py`) por una
-única que devuelve resumen largo + breve + gancho en JSON validado.
+Delega en el agente por documento (`document_agent`), que LEE EL TEXTO COMPLETO
+(map-reduce cuando es largo) y devuelve un brief estructurado. Se mantiene la
+firma histórica `summarize()` para no romper llamadas existentes.
 """
 
 from __future__ import annotations
 
-from boe.llm.prompts import PROMPT_VERSION, SummaryOutput, summary_messages
+from boe.enrich.document_agent import summarize_document
+from boe.llm.prompts import DocumentBrief
 from boe.llm.router import LLMRouter
 
 
 async def summarize(
     router: LLMRouter, texto: str, titulo: str
-) -> tuple[SummaryOutput, str]:
-    """Devuelve (resumen, versión_de_prompt). El texto puede ser el título si no
+) -> tuple[DocumentBrief, str]:
+    """Devuelve (brief, versión_de_prompt). El texto puede ser el título si no
     hay cuerpo (muchas publicaciones del BOE se entienden solo con el titular)."""
-    messages = summary_messages(texto or titulo, titulo)
-    result = await router.complete_structured(messages, SummaryOutput)
-    return result, PROMPT_VERSION
+    return await summarize_document(router, texto, titulo)

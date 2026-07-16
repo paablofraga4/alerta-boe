@@ -124,6 +124,34 @@ def _cmd_content_list(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_digest_weekly(args: argparse.Namespace) -> None:
+    """Envía el digest semanal «El BOE en 3 minutos» a las suscripciones activas."""
+    from datetime import datetime as _dt
+
+    from boe.alerts.digest import run_weekly
+
+    hasta = _dt.strptime(args.hasta, "%Y-%m-%d").date() if args.hasta else None
+
+    async def _run() -> None:
+        result = await run_weekly(hasta)
+        print(f"Digest semanal: {json.dumps(result, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
+def _cmd_content_render(args: argparse.Namespace) -> None:
+    """Renderiza los vídeos de las piezas TikTok aprobadas sin asset."""
+    from pathlib import Path
+
+    from boe.content.video.batch import render_approved
+
+    async def _run() -> None:
+        result = await render_approved(Path(args.out))
+        print(f"Render de vídeos: {json.dumps(result, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
 def _cmd_alerts_run(args: argparse.Namespace) -> None:
     """Casa los documentos de un día con las suscripciones y envía las alertas."""
     from datetime import datetime as _dt
@@ -202,6 +230,14 @@ def build_parser() -> argparse.ArgumentParser:
     ar = sub.add_parser("alerts-run", help="Envía las alertas casadas de un día")
     ar.add_argument("fecha", help="Fecha AAAA-MM-DD")
     ar.set_defaults(func=_cmd_alerts_run)
+
+    dw = sub.add_parser("digest-weekly", help="Envía el digest semanal a las suscripciones")
+    dw.add_argument("--hasta", help="Último día de la semana AAAA-MM-DD (defecto: hoy)")
+    dw.set_defaults(func=_cmd_digest_weekly)
+
+    cr = sub.add_parser("content-render", help="Renderiza los vídeos aprobados sin asset")
+    cr.add_argument("--out", default="data/videos", help="Directorio de salida de los mp4")
+    cr.set_defaults(func=_cmd_content_render)
 
     return parser
 

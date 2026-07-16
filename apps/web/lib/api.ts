@@ -1,8 +1,10 @@
 // Cliente tipado de la API v1 de AlertaBOE.
-// En servidor usa API_BASE (red interna); en cliente, NEXT_PUBLIC_API_BASE.
+// En servidor usa API_BASE directo; en cliente pasa por el proxy same-origin
+// /api/boe (rewrite de next.config.js), así no hay CORS ni clave expuesta.
+// NEXT_PUBLIC_API_BASE permite saltarse el proxy si algún despliegue lo pide.
 
 const SERVER_BASE = process.env.API_BASE ?? "http://127.0.0.1:8000";
-const CLIENT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+const CLIENT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api/boe";
 
 function baseUrl(): string {
   return typeof window === "undefined" ? SERVER_BASE : CLIENT_BASE;
@@ -21,7 +23,21 @@ export type Scope = "europeo" | "nacional" | "autonomico" | "otro";
 
 export interface Topic { name: string; slug: string; }
 export interface Region { name: string; code: string | null; }
-export interface Summary { long: string | null; short: string | null; hook: string | null; }
+
+export interface Plazo { fecha: string; accion: string; }
+export interface SummaryStructured {
+  que_regula?: string;
+  a_quien_afecta?: string[];
+  puntos_clave?: string[];
+  plazos?: Plazo[];
+  que_hacer?: string[];
+}
+export interface Summary {
+  long: string | null;
+  short: string | null;
+  hook: string | null;
+  structured?: SummaryStructured | null;
+}
 
 export interface Document {
   boe_id: string;
@@ -70,6 +86,21 @@ export interface Digest { fecha: string; total: number; highlights: DigestItem[]
 
 export interface SearchHit { document: Document; score: number; matched: string[]; }
 export interface SearchResponse { query: string; total: number; results: SearchHit[]; }
+
+export interface TopicCount { name: string; slug: string; count: number; }
+export interface TopicListResponse { topics: TopicCount[]; }
+
+export interface Deadline {
+  fecha: string;
+  fecha_texto: string;
+  accion: string;
+  dias_restantes: number;
+  boe_id: string;
+  title: string;
+  scope: Scope;
+  topics: Topic[];
+}
+export interface DeadlineListResponse { total: number; deadlines: Deadline[]; }
 
 export interface Citation { boe_id: string; title: string; url_html: string | null; }
 export interface ChatResponse { answer: string; citations: Citation[]; }
@@ -124,6 +155,9 @@ function buildQuery(params: Record<string, string | undefined>): string {
 }
 
 export const api = {
+  topics: () => get<TopicListResponse>(`/v1/topics`),
+  deadlines: (topic?: string) =>
+    get<DeadlineListResponse>(`/v1/deadlines${buildQuery({ topic })}`, 600),
   digest: (fecha: string) => get<Digest>(`/v1/digest/${fecha}`),
   document: (boeId: string) => get<DocumentDetail>(`/v1/documents/${boeId}`),
   thread: (boeId: string) => get<Thread>(`/v1/documents/${boeId}/thread`),

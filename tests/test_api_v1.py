@@ -13,13 +13,15 @@ from apps.api import main
 from apps.api.routers import chat as chat_router
 from boe.core.db import get_session
 from boe.core.enums import Scope
-from boe.core.models import Document, Summary
+from boe.core.models import Document, Summary, Topic
 
 _FECHA = date(2024, 7, 9)
 
 
 async def _seed(session_factory):
     async with session_factory() as s:
+        ayudas = Topic(name="Subvención", slug="subvencion")
+        s.add(ayudas)
         d1 = Document(
             boe_id="BOE-A-2024-0001",
             published_at=_FECHA,
@@ -28,6 +30,7 @@ async def _seed(session_factory):
             scope=Scope.NACIONAL,
             departamento="MINISTERIO DE HACIENDA",
             url_html="https://boe.es/1",
+            topics=[ayudas],
         )
         d2 = Document(
             boe_id="BOE-A-2024-0002",
@@ -39,7 +42,20 @@ async def _seed(session_factory):
         )
         s.add_all([d1, d2])
         await s.flush()
-        s.add(Summary(document_id=d1.id, short="Nuevas ayudas para autónomos.", model="x"))
+        s.add(
+            Summary(
+                document_id=d1.id,
+                short="Nuevas ayudas para autónomos.",
+                model="x",
+                structured={
+                    "plazos": [
+                        {"fecha": "31 de diciembre de 2099", "accion": "Solicitar la ayuda"},
+                        {"fecha": "1 de enero de 2020", "accion": "Plazo ya vencido"},
+                        {"fecha": "3 meses", "accion": "Relativo, sin fecha concreta"},
+                    ]
+                },
+            )
+        )
         await s.commit()
 
 
@@ -86,6 +102,39 @@ async def test_search_with_filter(client):
     assert resp.status_code == 200
     ids = {r["document"]["boe_id"] for r in resp.json()["results"]}
     assert ids == {"BOE-A-2024-0002"}
+
+
+async def test_topics_listing_with_counts(client):
+    resp = await client.get("/v1/topics")
+    assert resp.status_code == 200
+    topics = {t["slug"]: t for t in resp.json()["topics"]}
+    assert topics["subvencion"]["name"] == "Subvención"
+    assert topics["subvencion"]["count"] == 1
+
+
+async def test_search_filter_by_topic(client):
+    resp = await client.post("/v1/search", json={"query": "", "topic": "subvencion"})
+    assert resp.status_code == 200
+    ids = {r["document"]["boe_id"] for r in resp.json()["results"]}
+    assert ids == {"BOE-A-2024-0001"}
+
+
+async def test_deadlines_only_future_and_dated(client):
+    resp = await client.get("/v1/deadlines")
+    assert resp.status_code == 200
+    data = resp.json()
+    # Solo el plazo futuro con fecha concreta; el vencido y el relativo se descartan.
+    assert data["total"] == 1
+    plazo = data["deadlines"][0]
+    assert plazo["accion"] == "Solicitar la ayuda"
+    assert plazo["boe_id"] == "BOE-A-2024-0001"
+    assert plazo["dias_restantes"] > 0
+
+
+async def test_deadlines_topic_filter(client):
+    resp = await client.get("/v1/deadlines?topic=no-existe")
+    assert resp.status_code == 200
+    assert resp.json()["total"] == 0
 
 
 async def test_chat_requires_provider(client):

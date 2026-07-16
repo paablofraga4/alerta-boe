@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     embeddings_dim: int = 1024
 
     # ─── API pública ─────────────────────────────────────────────────────────
-    api_cors_origins: str = "http://localhost:3000"
+    api_cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     log_level: str = "INFO"
 
     # API keys válidas (coma-separadas). Vacío = API abierta (solo desarrollo).
@@ -83,6 +83,9 @@ class Settings(BaseSettings):
     smtp_from: str = "AlertaBOE <no-reply@alertaboe.app>"
     # Telegram. Si falta el token, el notificador Telegram va en dry-run.
     telegram_bot_token: str | None = None
+
+    # URL pública de la web (para enlaces en emails y tarjetas).
+    web_base_url: str = "https://alertaboe.vercel.app"
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -234,6 +234,10 @@ class Summary(Base, TimestampMixin):
     short: Mapped[str | None] = mapped_column(Text)
     hook: Mapped[str | None] = mapped_column(Text)
 
+    # Brief estructurado del agente por documento (qué regula, a quién afecta,
+    # puntos clave, plazos, qué hacer). Nulo en resúmenes v1.
+    structured: Mapped[dict | None] = mapped_column(JSONB)
+
     # Trazabilidad: con qué se generó (para poder regenerar o auditar).
     model: Mapped[str | None] = mapped_column(String(128))
     prompt_version: Mapped[str | None] = mapped_column(String(32))

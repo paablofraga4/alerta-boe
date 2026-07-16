@@ -16,6 +16,7 @@ from .deps import require_api_key
 from .routers import (
     chat,
     content,
+    deadlines,
     digest,
     documents,
     health,
@@ -43,6 +44,7 @@ _v1 = [Depends(require_api_key)]
 app.include_router(documents.router, prefix="/v1", tags=["documents"], dependencies=_v1)
 app.include_router(digest.router, prefix="/v1", tags=["digest"], dependencies=_v1)
 app.include_router(search.router, prefix="/v1", tags=["search"], dependencies=_v1)
+app.include_router(deadlines.router, prefix="/v1", tags=["deadlines"], dependencies=_v1)
 app.include_router(chat.router, prefix="/v1", tags=["chat"], dependencies=_v1)
 app.include_router(content.router, prefix="/v1", tags=["content"], dependencies=_v1)
 app.include_router(subscriptions.router, prefix="/v1", tags=["alerts"], dependencies=_v1)

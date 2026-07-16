@@ -36,6 +36,9 @@ class SummaryOut(BaseModel):
     long: str | None = None
     short: str | None = None
     hook: str | None = None
+    # Brief estructurado del agente por documento (qué regula, a quién afecta,
+    # puntos_clave, plazos, que_hacer). Nulo en resúmenes v1.
+    structured: dict | None = None
 
 
 class DocumentOut(BaseModel):
@@ -79,6 +82,36 @@ class ThreadOut(BaseModel):
     title: str
     anteriores: list[ReferenceOut] = []
     posteriores: list[ReferenceOut] = []
+
+
+class DeadlineOut(BaseModel):
+    """Un plazo vivo extraído por el agente, con su norma de origen."""
+
+    fecha: date
+    fecha_texto: str          # cómo aparece en la norma ("30 de septiembre de 2026")
+    accion: str
+    dias_restantes: int
+    boe_id: str
+    title: str
+    scope: Scope
+    topics: list[TopicOut] = []
+
+
+class DeadlineListResponse(BaseModel):
+    total: int
+    deadlines: list[DeadlineOut] = []
+
+
+class TopicCountOut(BaseModel):
+    """Tema con su número de publicaciones (para chips y navegación)."""
+
+    name: str
+    slug: str
+    count: int
+
+
+class TopicListResponse(BaseModel):
+    topics: list[TopicCountOut] = []
 
 
 # ─── Búsqueda ────────────────────────────────────────────────────────────────
