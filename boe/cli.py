@@ -139,6 +139,21 @@ def _cmd_digest_weekly(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_resummarize(args: argparse.Namespace) -> None:
+    """Regenera al agente v2 (brief estructurado) los resúmenes antiguos."""
+    from datetime import datetime as _dt
+
+    from boe.enrich.resummarize import resummarize_pending
+
+    since = _dt.strptime(args.since, "%Y-%m-%d").date() if args.since else None
+
+    async def _run() -> None:
+        result = await resummarize_pending(limit=args.limit, since=since)
+        print(f"Re-resumen v2: {json.dumps(result, ensure_ascii=False)}")
+
+    asyncio.run(_run())
+
+
 def _cmd_content_render(args: argparse.Namespace) -> None:
     """Renderiza los vídeos de las piezas TikTok aprobadas sin asset."""
     from pathlib import Path
@@ -234,6 +249,11 @@ def build_parser() -> argparse.ArgumentParser:
     dw = sub.add_parser("digest-weekly", help="Envía el digest semanal a las suscripciones")
     dw.add_argument("--hasta", help="Último día de la semana AAAA-MM-DD (defecto: hoy)")
     dw.set_defaults(func=_cmd_digest_weekly)
+
+    rs = sub.add_parser("resummarize", help="Regenera resúmenes antiguos al agente v2")
+    rs.add_argument("--limit", type=int, default=100, help="Máximo de resúmenes a regenerar")
+    rs.add_argument("--since", help="Solo desde esta fecha AAAA-MM-DD (opcional)")
+    rs.set_defaults(func=_cmd_resummarize)
 
     cr = sub.add_parser("content-render", help="Renderiza los vídeos aprobados sin asset")
     cr.add_argument("--out", default="data/videos", help="Directorio de salida de los mp4")

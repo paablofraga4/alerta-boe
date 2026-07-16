@@ -52,3 +52,8 @@ jobs:
         run: boe ingest "${{ steps.fecha.outputs.compact }}"
       - name: Enviar alertas casadas
         run: boe alerts-run "${{ steps.fecha.outputs.iso }}"
+      - name: Backfill de resúmenes al agente v2 (por lotes)
+        # Auto-cura: cada día regenera un lote de resúmenes antiguos al brief
+        # estructurado, hasta que todo el histórico sea v2 (puebla el Radar).
+        run: boe resummarize --limit 200
+        continue-on-error: true
