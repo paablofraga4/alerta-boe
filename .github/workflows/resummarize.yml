@@ -1,0 +1,44 @@
+name: Backfill de resúmenes al agente v2
+
+# Regenera con el agente por noticia (brief estructurado: qué regula, plazos,
+# qué hacer) los resúmenes ingeridos antes de desplegarlo. Manual y por lotes,
+# para poblar el Radar de plazos y las fichas ricas sin re-ingerir nada.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Máximo de resúmenes a regenerar en esta pasada"
+        required: false
+        default: "150"
+      since:
+        description: "Solo desde esta fecha (AAAA-MM-DD). Vacío = todos."
+        required: false
+        default: ""
+
+concurrency:
+  group: resummarize
+  cancel-in-progress: false
+
+jobs:
+  resummarize:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Regenerar resúmenes
+        run: |
+          if [ -n "${{ github.event.inputs.since }}" ]; then
+            boe resummarize --limit "${{ github.event.inputs.limit }}" --since "${{ github.event.inputs.since }}"
+          else
+            boe resummarize --limit "${{ github.event.inputs.limit }}"
+          fi
