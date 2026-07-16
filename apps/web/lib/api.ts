@@ -3,7 +3,11 @@
 // /api/boe (rewrite de next.config.js), así no hay CORS ni clave expuesta.
 // NEXT_PUBLIC_API_BASE permite saltarse el proxy si algún despliegue lo pide.
 
-const SERVER_BASE = process.env.API_BASE ?? "http://127.0.0.1:8000";
+const SERVER_FALLBACK =
+  process.env.NODE_ENV === "production"
+    ? "https://alertaboe-api.onrender.com"
+    : "http://127.0.0.1:8000";
+const SERVER_BASE = process.env.API_BASE ?? SERVER_FALLBACK;
 const CLIENT_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "/api/boe";
 
 function baseUrl(): string {
