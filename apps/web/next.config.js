@@ -5,7 +5,13 @@ const nextConfig = {
   // reenvía al backend (API_BASE). Evita CORS en producción y no expone la
   // URL/clave de la API al cliente.
   async rewrites() {
-    const base = process.env.API_BASE ?? "http://127.0.0.1:8000";
+    // En producción, por defecto la API de Render; en local, el backend local.
+    // API_BASE sobreescribe ambos.
+    const fallback =
+      process.env.NODE_ENV === "production"
+        ? "https://alertaboe-api.onrender.com"
+        : "http://127.0.0.1:8000";
+    const base = process.env.API_BASE ?? fallback;
     return [{ source: "/api/boe/:path*", destination: `${base}/:path*` }];
   },
 };

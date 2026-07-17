@@ -57,3 +57,9 @@ jobs:
         # estructurado, hasta que todo el histórico sea v2 (puebla el Radar).
         run: boe resummarize --limit 200
         continue-on-error: true
+      - name: Generar borradores de contenido para redes
+        # Genera guiones (TikTok/LinkedIn/X) de las 3 publicaciones mas
+        # interesantes del dia. Quedan como BORRADOR en /contenido; nada se
+        # publica sin aprobacion. El render de video lo hace render-videos.yml.
+        run: boe content-generate "${{ steps.fecha.outputs.iso }}" --top 3
+        continue-on-error: true
