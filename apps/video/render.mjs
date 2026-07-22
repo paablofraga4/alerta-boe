@@ -14,11 +14,16 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  const [propsPath, outPath] = process.argv.slice(2);
-  if (!propsPath || !outPath) {
+  const [propsArg, outArg] = process.argv.slice(2);
+  if (!propsArg || !outArg) {
     console.error("Uso: node render.mjs <props.json> <salida.mp4>");
     process.exit(1);
   }
+
+  // Resolver a absoluto desde el cwd del proceso: este script se ejecuta con
+  // cwd=apps/video, pero las rutas llegan relativas a la raíz del repo.
+  const propsPath = resolve(process.cwd(), propsArg);
+  const outPath = resolve(process.cwd(), outArg);
 
   const props = JSON.parse(readFileSync(propsPath, "utf-8"));
 

@@ -61,6 +61,9 @@ async def render_approved(
     runner: NodeRunner = _node_render,
 ) -> dict[str, int]:
     """Renderiza los vídeos pendientes. Devuelve {renderizados, fallidos, sin_guion}."""
+    # Absoluto: el runner de Remotion se ejecuta con cwd=apps/video, así que las
+    # rutas relativas (p. ej. "data/videos/27.props.json") no se resolverían.
+    out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     rendered = failed = skipped = 0
 
