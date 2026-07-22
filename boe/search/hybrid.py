@@ -35,6 +35,7 @@ class SearchFilters:
     topic: str | None = None          # slug del tema
     region: str | None = None         # nombre de la CCAA
     departamento: str | None = None
+    category: str | None = None       # categoría editorial del triaje
 
 
 @dataclass
@@ -59,6 +60,8 @@ def _apply_filters(stmt: Select, filters: SearchFilters) -> Select:
         stmt = stmt.where(Document.topics.any(Topic.slug == filters.topic))
     if filters.region:
         stmt = stmt.where(Document.regions.any(Region.name == filters.region))
+    if filters.category:
+        stmt = stmt.where(Document.category == filters.category)
     return stmt
 
 

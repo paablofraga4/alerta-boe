@@ -83,10 +83,21 @@ export interface DigestItem {
   scope: Scope;
   short: string | null;
   url_html: string | null;
+  category?: string | null;
+  relevance?: number | null;
 }
 
 export interface DigestGroup { scope: Scope; count: number; items: DigestItem[]; }
-export interface Digest { fecha: string; total: number; highlights: DigestItem[]; groups: DigestGroup[]; }
+export interface CategoryGroup { category: string; label: string; count: number; items: DigestItem[]; }
+export interface NoiseSummary { total: number; breakdown: Record<string, number>; }
+export interface Digest {
+  fecha: string;
+  total: number;
+  highlights: DigestItem[];
+  groups: DigestGroup[];
+  categories: CategoryGroup[];
+  noise: NoiseSummary | null;
+}
 
 export interface SearchHit { document: Document; score: number; matched: string[]; }
 export interface SearchResponse { query: string; total: number; results: SearchHit[]; }

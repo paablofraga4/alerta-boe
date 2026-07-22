@@ -106,6 +106,11 @@ class Document(Base, TimestampMixin):
         Enum(Scope, name="document_scope"), default=Scope.OTRO, index=True
     )
 
+    # Triaje editorial (boe/enrich/triage.py): categoría ciudadana y relevancia
+    # 0-100. La portada ordena por relevancia y colapsa las categorías de ruido.
+    category: Mapped[str | None] = mapped_column(String(32), index=True)
+    relevance: Mapped[int | None] = mapped_column(Integer, index=True)
+
     url_html: Mapped[str | None] = mapped_column(Text)
     url_pdf: Mapped[str | None] = mapped_column(Text)
     url_xml: Mapped[str | None] = mapped_column(Text)
