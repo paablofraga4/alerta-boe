@@ -73,6 +73,9 @@ async def test_render_approved_with_fake_runner(session_factory, tmp_path):
     await _seed(session_factory)
 
     async def fake_runner(props_path: Path, out_path: Path) -> bool:
+        # El runner de Remotion corre con otro cwd: las rutas DEBEN ser absolutas.
+        assert props_path.is_absolute()
+        assert out_path.is_absolute()
         assert props_path.exists()  # los assets se generaron antes del render
         out_path.write_bytes(b"mp4")
         return True
