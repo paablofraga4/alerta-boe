@@ -10,6 +10,7 @@ const SCOPES: Scope[] = ["nacional", "autonomico", "europeo", "otro"];
 function Buscador() {
   const params = useSearchParams();
   const [query, setQuery] = useState(params.get("q") ?? "");
+  const category = params.get("category") ?? "";  // llega desde la portada ("Ver todo")
   const [topics, setTopics] = useState<TopicCount[]>([]);
   const [topic, setTopic] = useState<string>(params.get("topic") ?? "");
   const [scope, setScope] = useState<Scope | "">("");
@@ -35,6 +36,7 @@ function Buscador() {
         limit: 30,
         topic: t || undefined,
         scope: s || undefined,
+        category: category || undefined,
         desde: desde || undefined,
         hasta: hasta || undefined,
       });
@@ -47,9 +49,9 @@ function Buscador() {
     }
   }
 
-  // Si llega con ?topic= o ?q= (p. ej. desde una ficha), busca al entrar.
+  // Si llega con ?topic=, ?category= o ?q= (desde una ficha o la portada), busca al entrar.
   useEffect(() => {
-    if (params.get("topic") || params.get("q")) run();
+    if (params.get("topic") || params.get("category") || params.get("q")) run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

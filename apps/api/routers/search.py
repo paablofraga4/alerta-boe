@@ -49,6 +49,7 @@ async def search_documents(
         topic=body.topic,
         region=body.region,
         departamento=body.departamento,
+        category=body.category,
     )
     hits = await search(session, body.query, filters=filters, limit=body.limit)
     return SearchResponse(

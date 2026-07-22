@@ -50,6 +50,11 @@ jobs:
           echo "compact=$(echo $D | tr -d -)" >> "$GITHUB_OUTPUT"
       - name: Ingerir y enriquecer el BOE
         run: boe ingest "${{ steps.fecha.outputs.compact }}"
+      - name: Triaje editorial (categoría + relevancia, sin LLM)
+        # Recalcula categoría/relevancia de todo el histórico (barato). Deja la
+        # portada agrupada por valor y con el ruido colapsado.
+        run: boe triage-backfill
+        continue-on-error: true
       - name: Enviar alertas casadas
         run: boe alerts-run "${{ steps.fecha.outputs.iso }}"
       - name: Backfill de resúmenes al agente v2 (por lotes)

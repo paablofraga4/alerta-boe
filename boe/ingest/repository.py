@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from boe.clients.dto import SummaryItem
 from boe.core.enums import PipelineStage, StageStatus
 from boe.core.models import Document, PipelineState, Region, Topic
+from boe.enrich.triage import triage
 
 # Secciones cuyo contenido se consolida (habilita el grafo normativo).
 _CONSOLIDABLE_SECTIONS = {"1"}  # I. Disposiciones generales
@@ -38,6 +39,11 @@ async def upsert_document(
     consolidated_id = (
         item.boe_id if item.seccion_codigo in _CONSOLIDABLE_SECTIONS else None
     )
+    tri = triage(
+        title=item.title,
+        seccion_codigo=item.seccion_codigo,
+        epigrafe=item.epigrafe,
+    )
     doc = Document(
         boe_id=item.boe_id,
         published_at=published_at,
@@ -51,6 +57,8 @@ async def upsert_document(
         url_xml=item.url_xml,
         pages=item.pages,
         consolidated_id=consolidated_id,
+        category=tri.category,
+        relevance=tri.relevance,
     )
     session.add(doc)
     await session.flush()

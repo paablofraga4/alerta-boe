@@ -139,6 +139,32 @@ def _cmd_digest_weekly(args: argparse.Namespace) -> None:
     asyncio.run(_run())
 
 
+def _cmd_triage_backfill(_: argparse.Namespace) -> None:
+    """Recalcula categoría y relevancia de TODOS los documentos (sin LLM)."""
+    from sqlalchemy import select
+
+    from boe.core.db import SessionLocal
+    from boe.core.models import Document
+    from boe.enrich.triage import triage
+
+    async def _run() -> None:
+        async with SessionLocal() as session:
+            docs = (await session.execute(select(Document))).scalars().all()
+            for doc in docs:
+                tri = triage(
+                    title=doc.title,
+                    seccion_codigo=doc.seccion_codigo,
+                    epigrafe=doc.epigrafe,
+                    rango=doc.rango,
+                )
+                doc.category = tri.category
+                doc.relevance = tri.relevance
+            await session.commit()
+        print(f"Triaje recalculado para {len(docs)} documentos")
+
+    asyncio.run(_run())
+
+
 def _cmd_resummarize(args: argparse.Namespace) -> None:
     """Regenera al agente v2 (brief estructurado) los resúmenes antiguos."""
     from datetime import datetime as _dt
@@ -249,6 +275,9 @@ def build_parser() -> argparse.ArgumentParser:
     dw = sub.add_parser("digest-weekly", help="Envía el digest semanal a las suscripciones")
     dw.add_argument("--hasta", help="Último día de la semana AAAA-MM-DD (defecto: hoy)")
     dw.set_defaults(func=_cmd_digest_weekly)
+
+    tb = sub.add_parser("triage-backfill", help="Recalcula categoría/relevancia de todo")
+    tb.set_defaults(func=_cmd_triage_backfill)
 
     rs = sub.add_parser("resummarize", help="Regenera resúmenes antiguos al agente v2")
     rs.add_argument("--limit", type=int, default=100, help="Máximo de resúmenes a regenerar")

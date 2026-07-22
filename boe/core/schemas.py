@@ -126,6 +126,7 @@ class SearchRequest(BaseModel):
     topic: str | None = None
     region: str | None = None
     departamento: str | None = None
+    category: str | None = None
     limit: int = 20
 
 
@@ -153,6 +154,8 @@ class DigestItem(BaseModel):
     scope: Scope
     short: str | None = None       # resumen breve, si existe
     url_html: str | None = None
+    category: str | None = None
+    relevance: int | None = None
 
 
 class DigestGroup(BaseModel):
@@ -161,11 +164,29 @@ class DigestGroup(BaseModel):
     items: list[DigestItem] = []
 
 
+class CategoryGroup(BaseModel):
+    """Grupo editorial de la portada: una categoría con sus mejores items."""
+
+    category: str
+    label: str
+    count: int
+    items: list[DigestItem] = []
+
+
+class NoiseSummary(BaseModel):
+    """Recuento del ruido colapsado (nombramientos, edictos, anuncios)."""
+
+    total: int
+    breakdown: dict[str, int] = {}   # categoría → recuento
+
+
 class DigestOut(BaseModel):
     fecha: date
     total: int
     highlights: list[DigestItem] = []
-    groups: list[DigestGroup] = []
+    groups: list[DigestGroup] = []          # compat: agrupación por ámbito
+    categories: list[CategoryGroup] = []    # portada editorial sin ruido
+    noise: NoiseSummary | None = None
 
 
 # ─── Chat RAG ────────────────────────────────────────────────────────────────
